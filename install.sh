@@ -95,7 +95,7 @@ fi
 echo "note: you may be prompted to input your password. this is to move the executable to ${INSTALL_PATH}"
 echo "do you want to install?"
 echo -n "enter y to continue or any other key to exit "
-read CONTINUE
+read CONTINUE < /dev/tty
 if [ "$CONTINUE" != "y" ]; then
     echo "exiting..."
     exit 0
@@ -157,7 +157,7 @@ if [ "$LOCAL_MODE" = true ]; then
     else
         echo "local executable found."
         echo -n "do you want to rebuild? "
-        read CONTINUE
+        read CONTINUE < /dev/tty
         if [ "$CONTINUE" != "y" ]; then
             build
         fi
