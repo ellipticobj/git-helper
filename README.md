@@ -6,24 +6,26 @@ development takes place on the dev branch, main is for prod
 
 ## usage:
 ```
-usage: meower [-h] [-n] [-u UPSTREAM] [-d] [-f] [-q] [-v] [--allow-empty] [--pull] [--pull-no-rebase] [--update-submodules] [message]
+usage: meow [-h] [-v] [-n] [-u UPSTREAM] [-d] [-f] [-q] [-ve] [--allow-empty] [-np] [--pull] [--pull-no-rebase] [--update-submodules] [message]
 
-helps to stages all changes, commits, and pushes, with args
+automatically stages, commits and pushes, with options
 
 positional arguments:
   message               commit message, overrides --no-message
 
 options:
   -h, --help            show this help message and exit
+  -v, --version         displays version number
   -n, --allow-empty-message, --no-message
                         allows empty commit message, has to be provided if no message is given
-  -u, --upstream UPSTREAM
+  -u, --set-upstream, --upstream UPSTREAM
                         upstream branch to push to
   -d, --dry-run, --dry  prints out the commands that will be run without actually running them
   -f, --force           force push
   -q, --quiet           quiet
-  -v, --verbose         verbose
+  -ve, --verbose        verbose
   --allow-empty         allows empty commit
+  -np, --no-push        does not push
   --pull                runs git pull before pushing before pushing
   --pull-no-rebase      runs git pull --no-rebase before pushing, overrides --pull
   --update-submodules   update submodules recursively
