@@ -66,8 +66,11 @@ def main() -> None:
     if args.empty:
         gcc.append('--allow-empty')
 
-    subprocess.call(gac)
-    subprocess.call(gcc)
-    subprocess.call(gpc)
+    run(gac, verbose)
+    run(gcc, verbose)
+    run(gpc, verbose)
 
     print("done")
+
+if __name__ == "__main__":
+    main()
