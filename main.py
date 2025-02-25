@@ -4,6 +4,8 @@ import subprocess
 from argparse import ArgumentParser
 from typing import List
 
+VERSION = '0.1.2'
+
 def run(args: List[str], dry: bool=False) -> None:
     cwd = os.getcwd()
     if dry:
@@ -20,12 +22,13 @@ def run(args: List[str], dry: bool=False) -> None:
 
 def main() -> None:
     parser = ArgumentParser(
-        prog="meower",
+        prog="meow",
         description="helps to stages all changes, commits, and pushes, with args",
         epilog="made by luna :3"
     )
 
     parser.add_argument("message", nargs='?', help="commit message, overrides --no-message")
+    parser.add_argument("-vn", "--version", required=False, dest="ver", action='store_true', help="displays version number")
     parser.add_argument("-n", "--allow-empty-message", "--no-message", dest="nomsg", required=False, action='store_true', help="allows empty commit message, has to be provided if no message is given")
     parser.add_argument("-u", "--upstream", required=False, help="upstream branch to push to")
     parser.add_argument("-d", "--dry-run", "--dry", dest="dry", required=False, action="store_true", help="prints out the commands that will be run without actually running them")
@@ -33,11 +36,16 @@ def main() -> None:
     parser.add_argument("-q", "--quiet", required=False, action='store_true', help="quiet")
     parser.add_argument("-v", "--verbose", required=False, action='store_true', help="verbose")
     parser.add_argument("--allow-empty", dest="empty", required=False, action='store_true', help="allows empty commit")
+    parser.add_argument("-np", "--no-push", action='store_true', required=False, dest="nopush", help="does not push")
     parser.add_argument("--pull", action="store_true", help="runs git pull before pushing before pushing")
     parser.add_argument("--pull-no-rebase", dest="norebase", action="store_true", help="runs git pull --no-rebase before pushing, overrides --pull")
     parser.add_argument("--update-submodules", action="store_true", help="update submodules recursively")
 
     args = parser.parse_args()
+
+    if args.ver:
+        print(f"meow version {VERSION}\nhttps://github.com/ellipticobj/meower")
+        sys.exit(1)
 
     if not args.nomsg and not args.message:
         parser.error("provide a commit message or use --no-message")
@@ -90,8 +98,13 @@ def main() -> None:
     elif args.pull:
         run(gpullc, args.dry)
 
-    for i in [gac, gcc, gpc]:
+    for i in [gac, gcc]:
         run(i, args.dry)
+
+    if not args.nopush:
+        run(gpc, args.dry)
+    else:
+        print("not pushing...")
 
     if not args.dry:
         print("done")
