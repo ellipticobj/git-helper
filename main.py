@@ -30,7 +30,7 @@ def main() -> None:
     parser.add_argument("message", nargs='?', help="commit message, overrides --no-message")
     parser.add_argument("-v", "--version", required=False, dest="ver", action='store_true', help="displays version number")
     parser.add_argument("-n", "--allow-empty-message", "--no-message", dest="nomsg", required=False, action='store_true', help="allows empty commit message, has to be provided if no message is given")
-    parser.add_argument("-u", "--upstream", required=False, help="upstream branch to push to")
+    parser.add_argument("-u", "--set-upstream", "--upstream", required=False, help="upstream branch to push to")
     parser.add_argument("-d", "--dry-run", "--dry", dest="dry", required=False, action="store_true", help="prints out the commands that will be run without actually running them")
     parser.add_argument("-f", "--force", required=False, action='store_true', help="force push")
     parser.add_argument("-q", "--quiet", required=False, action='store_true', help="quiet")
