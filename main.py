@@ -3,7 +3,11 @@ import subprocess
 from argparse import ArgumentParser
 from typing import List
 
-def run(args: List[str], verbose: bool) -> None:
+def run(args: List[str], verbose: bool, dry: bool=False) -> None:
+    if dry:
+        print(" ".join(args))
+        return None
+    
     if verbose:
         print("running command:", " ".join(args))
     try:
@@ -21,11 +25,15 @@ def main() -> None:
 
     parser.add_argument("message", required=False, help="commit message")
     parser.add_argument("-u", "--upstream", required=False, help="upstream branch to push to")
+    parser.add_argument("-d", "--dry-run", dest="dry", required=False, action="store_true", help="prints out the commands that will be run without actually running them")
     parser.add_argument("-f", "--force", required=False, action='store_true', help="force push")
     parser.add_argument("-q", "--quiet", required=False, action='store_true', help="quiet")
     parser.add_argument("-v", "--verbose", required=False, action='store_true', help="verbose")
     parser.add_argument("-n", "--allow-empty-message", "--no-message", dest="nomsg", required=False, action='store_true', help="allows empty commit message")
     parser.add_argument("--allow-empty", dest="empty", required=False, action='store_true', help="allows empty commit")
+    parser.add_argument("--pull", action="store_true", help="runs git pull before pushing before pushing")
+    parser.add_argument("--pull-no-rebase", action="store_true", help="runs git pull --no-rebase before pushing")
+    parser.add_argument("--update-submodules", action="store_true", help="update submodules recursively")
 
     args = parser.parse_args()
 
@@ -34,6 +42,10 @@ def main() -> None:
         sys.exit(0)
 
     verbose = args.verbose and not args.quiet
+
+
+    if args.update_submodules:
+        run(['git', 'submodule', 'update', '--init', '--recursive'], verbose, args.dry)
 
     gac: List[str] = ['git', 'add']
     gcc: List[str] = ['git', 'commit']
@@ -66,9 +78,11 @@ def main() -> None:
     if args.empty:
         gcc.append('--allow-empty')
 
-    run(gac, verbose)
-    run(gcc, verbose)
-    run(gpc, verbose)
+    if args.pull:
+        run(['git', 'pull'], verbose, args.dry)
+
+    for i in [gac, gcc, gpc]:
+        run(i, verbose, args.dry)
 
     print("done")
 
