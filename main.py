@@ -23,12 +23,8 @@ def run(args: List[str], dry: bool = False) -> None:
         sys.exit(e.returncode)
 
 
-def main() -> None:
-    parser = ArgumentParser(
-        prog="meow",
-        description="automatically stages, commits and pushes, with options",
-    )
-
+def initparser(parser: ArgumentParser) -> None:
+    '''initializes parser commands'''
     parser.add_argument("message", nargs='?', help="commit message, overrides --no-message")
     parser.add_argument("-v", "--version", required=False, dest="ver", action='store_true', help="displays version number")
     parser.add_argument("-n", "--allow-empty-message", "--no-message", dest="nomsg", required=False, action='store_true', help="allows empty commit message, has to be provided if no message is given")
@@ -43,12 +39,21 @@ def main() -> None:
     parser.add_argument("--pull-no-rebase", dest="norebase", action="store_true", help="runs git pull --no-rebase before pushing, overrides --pull")
     parser.add_argument("--update-submodules", action="store_true", help="update submodules recursively")
 
+
+def main() -> None:
+    parser: ArgumentParser = ArgumentParser(
+        prog="meow",
+        description="automatically stages, commits and pushes, with options",
+    )
+
+    initparser(parser)
+
     if len(sys.argv) == 1:
         parser.print_help()
         sys.exit(1)
 
     if len(sys.argv) >= 2:
-        if sys.argv[1].strip() == "meow":
+        if sys.argv[1].strip() == "meow": # :3
             print("meoww :3")
             sys.exit(1)
 
@@ -122,4 +127,7 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("user interrputed")
