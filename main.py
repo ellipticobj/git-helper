@@ -5,20 +5,20 @@ from typing import List
 
 def run(args: List[str], verbose: bool, dry: bool=False) -> None:
     if dry:
-        print(" ".join(args))
+        print(subprocess.list2cmdline(args))
         return None
     
     if verbose:
-        print("running command:", " ".join(args))
+        print(f"running command: {subprocess.list2cmdline(args)}")
     try:
         subprocess.run(args, check=True)
     except subprocess.CalledProcessError as e:
-        print(f"error: command '{' '.join(args)}' failed with exit code {e.returncode}.")
+        print(f"error: command '{subprocess.list2cmdline(args)}' failed with exit code {e.returncode}.")
         sys.exit(e.returncode)
 
 def main() -> None:
     parser = ArgumentParser(
-        prog="git helper",
+        prog="meower",
         description="helps to stages all changes, commits, and pushes, with args",
         epilog="made by luna :3"
     )
@@ -37,10 +37,14 @@ def main() -> None:
 
     args = parser.parse_args()
 
-    if not args.message and not args.nomsg:
-        parser.error("provide a commit message or use --allow-empty-message/-n")
+    if not args.nomsg and not args.message:
+        parser.error("provide a commit message or use --no-message")
         sys.exit(0)
 
+    if not args.message:
+        parser.error("no commit message provided. use -h for detailed help")
+        sys.exit(0)
+    
     verbose = args.verbose and not args.quiet
 
 
@@ -48,12 +52,15 @@ def main() -> None:
         run(['git', 'submodule', 'update', '--init', '--recursive'], verbose, args.dry)
 
     gpullc: List[str] = ['git', 'pull']
-    gac: List[str] = ['git', 'add']
+    gac: List[str] = ['git', 'add', '.']
     gcc: List[str] = ['git', 'commit']
     gpc: List[str] = ['git', 'push']
 
     if args.message:
-        gcc += ['-m', args.message]
+        msg = args.message
+        # msg = msg.replace('"', '\"')
+        # msg = msg.replace('!', '\!')
+        gcc += ['-m', msg]
 
     if args.upstream:
         try:
@@ -78,9 +85,10 @@ def main() -> None:
     if args.empty:
         gcc.append('--allow-empty')
 
-    if args.pull:
-        if args.norebase:
-            gpullc.append('--no-rebase')
+    if args.norebase:
+        gpullc.append('--no-rebase')
+        run(gpullc, verbose, args.dry)
+    elif args.pull:
         run(gpullc, verbose, args.dry)
 
     for i in [gac, gcc, gpc]:
