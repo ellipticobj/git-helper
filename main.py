@@ -1,17 +1,19 @@
+import os
 import sys
 import subprocess
 from argparse import ArgumentParser
 from typing import List
 
 def run(args: List[str], dry: bool=False) -> None:
+    cwd = os.getcwd()
     if dry:
         print(subprocess.list2cmdline(args))
         return None
     
     try:
-        print(f"running command: {subprocess.list2cmdline(args)}...", end="")
-        subprocess.run(args, check=True)
-        print("done")
+        print(f"running command: {subprocess.list2cmdline(args)} from {cwd} ...")
+        subprocess.run(args, check=True, cwd=cwd)
+        print(" done")
     except subprocess.CalledProcessError as e:
         print(f"error: command '{subprocess.list2cmdline(args)}' failed with exit code {e.returncode}.")
         sys.exit(e.returncode)
@@ -23,16 +25,16 @@ def main() -> None:
         epilog="made by luna :3"
     )
 
-    parser.add_argument("message", nargs='?', help="commit message")
+    parser.add_argument("message", nargs='?', help="commit message, overrides --no-message")
+    parser.add_argument("-n", "--allow-empty-message", "--no-message", dest="nomsg", required=False, action='store_true', help="allows empty commit message, has to be provided if no message is given")
     parser.add_argument("-u", "--upstream", required=False, help="upstream branch to push to")
     parser.add_argument("-d", "--dry-run", "--dry", dest="dry", required=False, action="store_true", help="prints out the commands that will be run without actually running them")
     parser.add_argument("-f", "--force", required=False, action='store_true', help="force push")
     parser.add_argument("-q", "--quiet", required=False, action='store_true', help="quiet")
     parser.add_argument("-v", "--verbose", required=False, action='store_true', help="verbose")
-    parser.add_argument("-n", "--allow-empty-message", "--no-message", dest="nomsg", required=False, action='store_true', help="allows empty commit message")
     parser.add_argument("--allow-empty", dest="empty", required=False, action='store_true', help="allows empty commit")
     parser.add_argument("--pull", action="store_true", help="runs git pull before pushing before pushing")
-    parser.add_argument("--pull-no-rebase", dest="norebase", action="store_true", help="runs git pull --no-rebase before pushing")
+    parser.add_argument("--pull-no-rebase", dest="norebase", action="store_true", help="runs git pull --no-rebase before pushing, overrides --pull")
     parser.add_argument("--update-submodules", action="store_true", help="update submodules recursively")
 
     args = parser.parse_args()
@@ -47,7 +49,6 @@ def main() -> None:
     
     verbose = args.verbose and not args.quiet
 
-
     if args.update_submodules:
         run(['git', 'submodule', 'update', '--init', '--recursive'], args.dry)
 
@@ -58,8 +59,6 @@ def main() -> None:
 
     if args.message:
         msg = args.message
-        # msg = msg.replace('"', '\"')
-        # msg = msg.replace('!', '\!')
         gcc += ['-m', msg]
 
     if args.upstream:
