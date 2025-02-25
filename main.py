@@ -28,3 +28,5 @@ args = parser.parse_args()
 gac: List[str] = ['git', 'add']
 gcc: List[str] = ['git', 'commit']
 gpc: List[str] = ['git', 'push']
+
+ 
