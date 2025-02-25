@@ -2,6 +2,7 @@
 im tired of doing git add . git commit -m "" git push all the time and im too lazy to make a macro
 
 ## usage:
+```
 usage: meower [-h] [-n] [-u UPSTREAM] [-d] [-f] [-q] [-v] [--allow-empty] [--pull] [--pull-no-rebase] [--update-submodules] [message]
 
 helps to stages all changes, commits, and pushes, with args
@@ -23,3 +24,4 @@ options:
   --pull                runs git pull before pushing before pushing
   --pull-no-rebase      runs git pull --no-rebase before pushing, overrides --pull
   --update-submodules   update submodules recursively
+```
