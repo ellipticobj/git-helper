@@ -35,21 +35,41 @@ EOF
 }
 
 error_exit() {
-    echo "Error: $1" >&2
+    echo "error: $1" >&2
     exit 1
 }
 
 build() {
-    if [ -x "./build.sh" ]; then
-        ./build.sh
-    else
-        if [ -f "./build.sh" ]; then
-            chmod +x build.sh
-            ./build.sh
-        else
-            error_exit "build.sh not found or not executable."
-        fi
+    # -----------------------
+    # env Checks
+    # -----------------------
+    if [ ! -f "main.py" ]; then
+        echo "error: main.py not found in the current directory." >&2
+        exit 1
     fi
+
+    if ! command -v pyinstaller &>/dev/null; then
+        echo "error: pyinstaller is not installed. \ninstall it using 'pip install pyinstaller'." >&2
+        exit 1
+    fi
+
+    # -----------------------
+    # building
+    # -----------------------
+    ARCH=$(uname -m)
+    EXEC_NAME="meow-${ARCH}"
+
+    echo "building ${EXEC_NAME}..."
+    /usr/bin/python3 -m PyInstaller --onefile main.py -n ${EXEC_NAME} --clean
+
+    OUTPUT_FILE="./dist/${EXEC_NAME}"
+    if [ ! -f "$OUTPUT_FILE" ]; then
+        echo "error: build failed. ${OUTPUT_FILE} not found." >&2
+        exit 1
+    fi
+
+    chmod +x "$OUTPUT_FILE"
+    echo "build finished. executable at ${OUTPUT_FILE}"
 }
 
 # ensures that the script exits immediately if an error occurs
@@ -75,7 +95,7 @@ fi
 echo "note: you may be prompted to input your password. this is to move the executable to ${INSTALL_PATH}"
 echo "do you want to install?"
 echo -n "enter y to continue or any other key to exit "
-read CONTINUE
+read CONTINUE < /dev/tty
 if [ "$CONTINUE" != "y" ]; then
     echo "exiting..."
     exit 0
@@ -137,7 +157,7 @@ if [ "$LOCAL_MODE" = true ]; then
     else
         echo "local executable found."
         echo -n "do you want to rebuild? "
-        read CONTINUE
+        read CONTINUE < /dev/tty
         if [ "$CONTINUE" != "y" ]; then
             build
         fi
@@ -169,7 +189,9 @@ else
     # check if the file exists at the URL before downloading
     HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${DOWNLOAD_URL}")
 
-    if [[ "${HTTP_STATUS}" -ne 200 ]]; then
+    echo $HTTP_STATUS
+
+    if [[ "${HTTP_STATUS}" -ne 302 ]]; then
         error_exit "executable not found at ${DOWNLOAD_URL} (HTTP ${HTTP_STATUS})\nuse ./install.sh --local to build locally or manually download from https://github.com/${REPO_OWNER}/${REPO_NAME}"
     fi
 
