@@ -4,7 +4,7 @@ import subprocess
 from argparse import ArgumentParser
 from typing import List
 
-VERSION = "0.1.3"
+VERSION = "0.1.5"
 
 def run(args: List[str], dry: bool = False) -> None:
     cwd = os.getcwd()
