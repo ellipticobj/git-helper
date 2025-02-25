@@ -6,7 +6,6 @@ from typing import List
 
 VERSION = "0.1.3"
 
-
 def run(args: List[str], dry: bool = False) -> None:
     cwd = os.getcwd()
     if dry:
@@ -47,6 +46,11 @@ def main() -> None:
     if len(sys.argv) == 1:
         parser.print_help()
         sys.exit(1)
+
+    if len(sys.argv) >= 2:
+        if sys.argv[1].strip() == "meow":
+            print("meoww :3")
+            sys.exit(1)
 
     args = parser.parse_args()
 
