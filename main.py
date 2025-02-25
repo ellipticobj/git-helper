@@ -9,8 +9,9 @@ def run(args: List[str], dry: bool=False) -> None:
         return None
     
     try:
-        print(f"running command: {subprocess.list2cmdline(args)}")
+        print(f"running command: {subprocess.list2cmdline(args)}...", end="")
         subprocess.run(args, check=True)
+        print("done")
     except subprocess.CalledProcessError as e:
         print(f"error: command '{subprocess.list2cmdline(args)}' failed with exit code {e.returncode}.")
         sys.exit(e.returncode)
