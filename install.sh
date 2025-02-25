@@ -39,6 +39,19 @@ error_exit() {
     exit 1
 }
 
+build() {
+    if [ -x "./build.sh" ]; then
+        ./build.sh
+    else
+        if [ -f "./build.sh" ]; then
+            chmod +x build.sh
+            ./build.sh
+        else
+            error_exit "build.sh not found or not executable."
+        fi
+    fi
+}
+
 # ensures that the script exits immediately if an error occurs
 set -euo pipefail
 
@@ -61,8 +74,8 @@ else
 fi
 echo "note: you may be prompted to input your password. this is to move the executable to ${INSTALL_PATH}"
 echo "do you want to install?"
-echo "enter y to continue or any other key to exit"
-read -r -n 1 -s CONTINUE
+echo -n "enter y to continue or any other key to exit "
+read CONTINUE
 if [ "$CONTINUE" != "y" ]; then
     echo "exiting..."
     exit 0
@@ -116,19 +129,17 @@ if [ "$LOCAL_MODE" = true ]; then
     LOCAL_FILE="./dist/${EXEC_NAME}-${ARCH}"
     if [ ! -f "$LOCAL_FILE" ]; then
         echo "local executable not found. attempting to build..."
-        if [ -x "./build.sh" ]; then
-            ./build.sh
-        else
-            if [ -f "./build.sh" ]; then
-                chmod +x build.sh
-                ./build.sh
-            else
-                error_exit "build.sh not found or not executable."
-            fi
-        fi
+        build
         # check again
         if [ ! -f "$LOCAL_FILE" ]; then
             error_exit "build did not produce ${LOCAL_FILE}."
+        fi
+    else
+        echo "local executable found."
+        echo -n "do you want to rebuild? "
+        read CONTINUE
+        if [ "$CONTINUE" != "y" ]; then
+            build
         fi
     fi
     # installs the file
