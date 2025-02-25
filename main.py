@@ -3,14 +3,13 @@ import subprocess
 from argparse import ArgumentParser
 from typing import List
 
-def run(args: List[str], verbose: bool, dry: bool=False) -> None:
+def run(args: List[str], dry: bool=False) -> None:
     if dry:
         print(subprocess.list2cmdline(args))
         return None
     
-    if verbose:
-        print(f"running command: {subprocess.list2cmdline(args)}")
     try:
+        print(f"running command: {subprocess.list2cmdline(args)}")
         subprocess.run(args, check=True)
     except subprocess.CalledProcessError as e:
         print(f"error: command '{subprocess.list2cmdline(args)}' failed with exit code {e.returncode}.")
@@ -49,7 +48,7 @@ def main() -> None:
 
 
     if args.update_submodules:
-        run(['git', 'submodule', 'update', '--init', '--recursive'], verbose, args.dry)
+        run(['git', 'submodule', 'update', '--init', '--recursive'], args.dry)
 
     gpullc: List[str] = ['git', 'pull']
     gac: List[str] = ['git', 'add', '.']
@@ -87,12 +86,12 @@ def main() -> None:
 
     if args.norebase:
         gpullc.append('--no-rebase')
-        run(gpullc, verbose, args.dry)
+        run(gpullc, args.dry)
     elif args.pull:
-        run(gpullc, verbose, args.dry)
+        run(gpullc, args.dry)
 
     for i in [gac, gcc, gpc]:
-        run(i, verbose, args.dry)
+        run(i, args.dry)
 
     if not args.dry:
         print("done")
