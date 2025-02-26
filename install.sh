@@ -57,12 +57,12 @@ build() {
     # building
     # -----------------------
     ARCH=$(uname -m)
-    EXEC_NAME="meow-${ARCH}"
+    BUILD_NAME="meow-${ARCH}"
 
     echo "building ${EXEC_NAME}..."
-    /usr/bin/python3 -m PyInstaller --onefile main.py -n ${EXEC_NAME} --clean
+    /usr/bin/python3 -m PyInstaller --onefile main.py -n ${BUILD_NAME} --clean
 
-    OUTPUT_FILE="./dist/${EXEC_NAME}"
+    OUTPUT_FILE="./dist/${BUILD_NAME}"
     if [ ! -f "$OUTPUT_FILE" ]; then
         echo "error: build failed. ${OUTPUT_FILE} not found." >&2
         exit 1
