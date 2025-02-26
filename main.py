@@ -6,7 +6,7 @@ from typing import List
 
 VERSION = "0.1.5"
 
-def run(args: List[str], dry: bool = False) -> None:
+def runcmd(args: List[str], cont: bool, dry: bool = False) -> None:
     cwd = os.getcwd()
     if dry:
         print(subprocess.list2cmdline(args))
@@ -20,8 +20,8 @@ def run(args: List[str], dry: bool = False) -> None:
         print(
             f"error: command '{subprocess.list2cmdline(args)}' failed with exit code {e.returncode}."
         )
-        sys.exit(e.returncode)
-
+        if not cont:
+            sys.exit(e.returncode)
 
 def initparser(parser: ArgumentParser) -> None:
     '''initializes parser commands'''
@@ -30,6 +30,7 @@ def initparser(parser: ArgumentParser) -> None:
     parser.add_argument("-n", "--allow-empty-message", "--no-message", dest="nomsg", required=False, action='store_true', help="allows empty commit message, has to be provided if no message is given")
     parser.add_argument("-u", "--set-upstream", "--upstream", dest="upstream", required=False, help="upstream branch to push to")
     parser.add_argument("-d", "--dry-run", "--dry", dest="dry", required=False, action="store_true", help="prints out the commands that will be run without actually running them")
+    parser.add_argument("-c", "--continue", required=False, dest="cont", action='store_true', help="continues even if there are errors")
     parser.add_argument("-f", "--force", required=False, action='store_true', help="force push")
     parser.add_argument("-q", "--quiet", required=False, action='store_true', help="quiet")
     parser.add_argument("-ve", "--verbose", required=False, action='store_true', help="verbose")
@@ -74,7 +75,7 @@ def main() -> None:
     verbose = args.verbose and not args.quiet
 
     if args.update_submodules:
-        run(["git", "submodule", "update", "--init", "--recursive"], args.dry)
+        runcmd(["git", "submodule", "update", "--init", "--recursive"], cont=args.cont, dry=args.dry)
 
     gpullc: List[str] = ["git", "pull"]
     gac: List[str] = ["git", "add", "."]
@@ -110,15 +111,15 @@ def main() -> None:
 
     if args.norebase:
         gpullc.append("--no-rebase")
-        run(gpullc, args.dry)
+        runcmd(gpullc, cont=args.cont, dry=args.dry)
     elif args.pull:
-        run(gpullc, args.dry)
+        runcmd(gpullc, cont=args.cont, dry=args.dry)
 
     for i in [gac, gcc]:
-        run(i, args.dry)
+        runcmd(i, cont=args.cont, dry=args.dry)
 
     if not args.nopush:
-        run(gpc, args.dry)
+        runcmd(gpc, cont=args.cont, dry=args.dry)
     else:
         print("not pushing...")
 
