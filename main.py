@@ -240,7 +240,7 @@ def main() -> None:
     print(f"\n{Fore.CYAN}{Style.BRIGHT}meows to meow:{Style.RESET_ALL}")
     for i, step in enumerate(steps, 1):
         print(f"  {Fore.BLUE}{i}.{Style.RESET_ALL} {Fore.WHITE}{step}{Style.RESET_ALL}")
-    print()
+    print() 
 
     # execute pipeline
     with tqdm(total=len(steps), desc=f"{Fore.MAGENTA}meowing...{Style.RESET_ALL}", bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}', position=1, leave=True) as main_progress:
