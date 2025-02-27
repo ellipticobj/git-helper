@@ -35,9 +35,9 @@ def printcmd(cmd: str) -> None:
 def progressbar(description: str, duration: float = 0.5) -> None:
     '''progress bar'''
     with tqdm(total=100, desc=f"{Fore.CYAN}{description}{Style.RESET_ALL}", bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}') as pbar:
-        for i in range(100):
+        for _ in range(100):
             time.sleep(duration / 100)
-            pbar.update(1)
+            pbar.update(1) 
 
 def runcmd(args: List[str], cont: bool, dry: bool = False, show_progress: bool = True) -> Optional[subprocess.CompletedProcess]:
     '''executes a command with error handling'''
