@@ -39,6 +39,27 @@ error_exit() {
     exit 1
 }
 
+install_dependencies() {
+    echo "Checking and installing required dependencies..."
+    
+    # Check if pip is installed
+    if ! command -v pip3 &>/dev/null; then
+        echo "error: pip3 is not installed. Please install pip3 and try again." >&2
+        exit 1
+    fi
+    
+    # Install required packages
+    echo "Installing required packages: colorama, tqdm"
+    pip3 install colorama tqdm
+    
+    if [ $? -ne 0 ]; then
+        echo "error: failed to install dependencies." >&2
+        exit 1
+    fi
+    
+    echo "Dependencies installed successfully."
+}
+
 build() {
     # -----------------------
     # env Checks
@@ -52,6 +73,9 @@ build() {
         echo "error: pyinstaller is not installed. \ninstall it using 'pip install pyinstaller'." >&2
         exit 1
     fi
+    
+    # Install required dependencies
+    install_dependencies
 
     # -----------------------
     # building
@@ -60,7 +84,7 @@ build() {
     BUILD_NAME="meow-${ARCH}"
 
     echo "building ${EXEC_NAME}..."
-    /usr/bin/python3 -m PyInstaller --onefile main.py -n ${BUILD_NAME} --clean
+    /usr/bin/python3 -m PyInstaller --onefile main.py -n ${BUILD_NAME} --clean --additional-hooks-dir=.
 
     OUTPUT_FILE="./dist/${BUILD_NAME}"
     if [ ! -f "$OUTPUT_FILE" ]; then

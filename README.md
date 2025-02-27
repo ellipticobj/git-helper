@@ -1,8 +1,22 @@
 # meow
-im tired of doing git add . git commit -m "" git push all the time and im too lazy to make a macro  
-this is made for myself and not you
+A git workflow automation tool with color output, progress bars, and improved UI.
+
+This tool simplifies the common git workflow (add, commit, push) with a single command.
+- Color coded output to easily identify success/errors
+- Progress tracking for commands
+- Visual feedback for operations
 
 development takes place on the dev branch, main is for prod
+
+## Installation
+
+```
+# Install dependencies
+pip install -r requirements.txt
+
+# Install the tool
+./install.sh
+```
 
 ## usage:
 ```
