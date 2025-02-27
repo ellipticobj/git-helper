@@ -14,7 +14,7 @@ def runcmd(args: List[str], cont: bool, dry: bool = False) -> None:
         return None
 
     try:
-        print(f"    running command: {subprocess.list2cmdline(args)} from {cwd}...")
+        print(f"    running command: {subprocess.list2cmdline(args)} from directory {cwd}...")
         subprocess.run(args, check=True, cwd=cwd)
         print("    done")
     except subprocess.CalledProcessError as e:
@@ -84,6 +84,13 @@ def main() -> None:
 
     if len(sys.argv) == 1:
         parser.print_help()
+        sys.exit(1)
+    
+    if len(sys.argv) > 1:
+        if sys.argv[1].lower().strip() == "meow":
+            print("meow meow :3")
+        else:
+            parser.print_help()
         sys.exit(1)
 
     args = parser.parse_args()
