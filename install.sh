@@ -57,12 +57,12 @@ build() {
     # building
     # -----------------------
     ARCH=$(uname -m)
-    EXEC_NAME="meow-${ARCH}"
+    BUILD_NAME="meow-${ARCH}"
 
     echo "building ${EXEC_NAME}..."
-    /usr/bin/python3 -m PyInstaller --onefile main.py -n ${EXEC_NAME} --clean
+    /usr/bin/python3 -m PyInstaller --onefile main.py -n ${BUILD_NAME} --clean
 
-    OUTPUT_FILE="./dist/${EXEC_NAME}"
+    OUTPUT_FILE="./dist/${BUILD_NAME}"
     if [ ! -f "$OUTPUT_FILE" ]; then
         echo "error: build failed. ${OUTPUT_FILE} not found." >&2
         exit 1
@@ -188,8 +188,6 @@ else
 
     # check if the file exists at the URL before downloading
     HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${DOWNLOAD_URL}")
-
-    echo $HTTP_STATUS
 
     if [[ "${HTTP_STATUS}" -ne 302 ]]; then
         error_exit "executable not found at ${DOWNLOAD_URL} (HTTP ${HTTP_STATUS})\nuse ./install.sh --local to build locally or manually download from https://github.com/${REPO_OWNER}/${REPO_NAME}"
