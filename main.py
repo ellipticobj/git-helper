@@ -230,56 +230,56 @@ def main() -> None:
     print()
 
     # execute pipeline
-    with tqdm(total=len(steps), desc=f"{Fore.MAGENTA}Progress{Style.RESET_ALL}", bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}') as progressbar:
+    # with tqdm(total=len(steps), desc=f"{Fore.MAGENTA}Progress{Style.RESET_ALL}", bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}') as progressbar:
         # status check
-        if args.status:
-            info(f"\n{Style.BRIGHT}status check{Style.RESET_ALL}")
-            runcmd(["git", "status"], args.cont, args.dry, show_progress=False)
-            progressbar.update(1)
+    if args.status:
+        info(f"\n{Style.BRIGHT}status check{Style.RESET_ALL}")
+        runcmd(["git", "status"], args.cont, args.dry, show_progress=False)
+        # progressbar.update(1)
 
-        # update submodules
-        if args.updatesubmodules:
-            info(f"\n{Style.BRIGHT}updating submodules{Style.RESET_ALL}")
-            runcmd(["git", "submodule", "update", "--init", "--recursive"], args.cont, args.dry)
-            progressbar.update(1)
+    # update submodules
+    if args.updatesubmodules:
+        info(f"\n{Style.BRIGHT}updating submodules{Style.RESET_ALL}")
+        runcmd(["git", "submodule", "update", "--init", "--recursive"], args.cont, args.dry)
+        # progressbar.update(1)
 
-        # stash changes
-        if args.stash:
-            info(f"\n{Style.BRIGHT}stashing changes{Style.RESET_ALL}")
-            runcmd(["git", "stash"], args.cont, args.dry)
-            progressbar.update(1)
+    # stash changes
+    if args.stash:
+        info(f"\n{Style.BRIGHT}stashing changes{Style.RESET_ALL}")
+        runcmd(["git", "stash"], args.cont, args.dry)
+        # progressbar.update(1)
 
-        # pull
-        if args.pull or args.norebase:
-            info(f"\n{Style.BRIGHT}pulling from remote{Style.RESET_ALL}")
-            pullhandler(args)
-            progressbar.update(1)
+    # pull
+    if args.pull or args.norebase:
+        info(f"\n{Style.BRIGHT}pulling from remote{Style.RESET_ALL}")
+        pullhandler(args)
+        # progressbar.update(1)
 
-        # stage changes
-        info(f"\n{Style.BRIGHT}staging changes{Style.RESET_ALL}")
-        addcmd: List[str] = ["git", "add", *args.add] if args.add else ["git", "add", "."]
-        if args.verbose and not args.quiet:
-            addcmd.append("--verbose")
-        runcmd(addcmd, args.cont, args.dry)
-        progressbar.update(1)
+    # stage changes
+    info(f"\n{Style.BRIGHT}staging changes{Style.RESET_ALL}")
+    addcmd: List[str] = ["git", "add", *args.add] if args.add else ["git", "add", "."]
+    if args.verbose and not args.quiet:
+        addcmd.append("--verbose")
+    runcmd(addcmd, args.cont, args.dry)
+    # progressbar.update(1)
 
-        # diff
-        if args.diff:
-            info(f"\n{Style.BRIGHT}showing diff{Style.RESET_ALL}")
-            runcmd(["git", "diff", "--staged"], args.cont, args.dry, show_progress=False)
-            progressbar.update(1)
+    # diff
+    if args.diff:
+        info(f"\n{Style.BRIGHT}showing diff{Style.RESET_ALL}")
+        runcmd(["git", "diff", "--staged"], args.cont, args.dry, show_progress=False)
+        # progressbar.update(1)
 
-        # commit
-        info(f"\n{Style.BRIGHT}committing{Style.RESET_ALL}")
-        commit = commithelper(args)
-        runcmd(commit, args.cont, args.dry)
-        progressbar.update(1)
+    # commit
+    info(f"\n{Style.BRIGHT}committing{Style.RESET_ALL}")
+    commit = commithelper(args)
+    runcmd(commit, args.cont, args.dry)
+    # progressbar.update(1)
 
-        # push
-        push: Optional[List[str]] = pushhelper(args)
-        if push:
-            runcmd(push, cont=args.cont, dry=args.dry)
-            progressbar.update(1)
+    # push
+    push: Optional[List[str]] = pushhelper(args)
+    if push:
+        runcmd(push, cont=args.cont, dry=args.dry)
+        # progressbar.update(1)
     
     # success message
     print("\n😺")
