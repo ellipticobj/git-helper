@@ -191,9 +191,10 @@ def main() -> None:
     # get args
     args: Namespace = parser.parse_args()
 
-    if "meow" in sys.argv:
-        print(f"{Fore.MAGENTA}{Style.BRIGHT}meow meow :3{Style.RESET_ALL}")
-        sys.exit(1)
+    if len(sys.argv) == 2:
+        if sys.argv[1] == "meow":
+            print(f"{Fore.MAGENTA}{Style.BRIGHT}meow meow :3{Style.RESET_ALL}")
+            sys.exit(1)
 
     if args.version:
         print(f"{Fore.MAGENTA}{Style.BRIGHT}meow{Style.RESET_ALL} version {Fore.CYAN}{VERSION}{Style.RESET_ALL}")
@@ -224,13 +225,13 @@ def main() -> None:
         steps.append("push to remote")
     
     # show pipeline overview
-    print(f"\n{Fore.CYAN}{Style.BRIGHT}Workflow Overview:{Style.RESET_ALL}")
+    print(f"\n{Fore.CYAN}{Style.BRIGHT}meows to meow:{Style.RESET_ALL}")
     for i, step in enumerate(steps, 1):
         print(f"  {Fore.BLUE}{i}.{Style.RESET_ALL} {Fore.WHITE}{step}{Style.RESET_ALL}")
     print()
 
     # execute pipeline
-    # with tqdm(total=len(steps), desc=f"{Fore.MAGENTA}Progress{Style.RESET_ALL}", bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}') as progressbar:
+    # with tqdm(total=len(steps), desc=f"{Fore.MAGENTA}meowing...{Style.RESET_ALL}", bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}') as progressbar:
         # status check
     if args.status:
         info(f"\n{Style.BRIGHT}status check{Style.RESET_ALL}")

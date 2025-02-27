@@ -84,7 +84,7 @@ build() {
     BUILD_NAME="meow-${ARCH}"
 
     echo "building ${EXEC_NAME}..."
-    /usr/bin/python3 -m PyInstaller --onefile main.py -n ${BUILD_NAME} --hidden-import=colorama --hidden-import=tqdm
+    python -m PyInstaller --onefile main.py -n ${BUILD_NAME} --hidden-import=colorama --hidden-import=tqdm
 
     OUTPUT_FILE="./dist/${BUILD_NAME}"
     if [ ! -f "$OUTPUT_FILE" ]; then
