@@ -6,32 +6,46 @@ from argparse import ArgumentParser, Namespace, _ArgumentGroup
 from typing import List, Union, Optional
 from colorama import Fore, Style, init # type: ignore
 from tqdm import tqdm # type: ignore
-from tqdm.utils import _term_move_up # type: ignore
 
 # initialize colorama
 init(autoreset=True)
 
 VERSION = "0.2.1-preview"
 
-def success(message: str) -> None:
+def success(message: str, pbar: Optional[tqdm] = None) -> None:
     '''print success message'''
-    print(f"{Fore.GREEN}{Style.BRIGHT}{message}{Style.RESET_ALL}")
+    if pbar:
+        pbar.write(f"{Fore.GREEN}{Style.BRIGHT}{message}")
+    else:
+        print(f"{Fore.GREEN}{Style.BRIGHT}{message}")
 
-def error(message: str) -> None:
+def error(message: str, pbar: Optional[tqdm] = None) -> None:
     '''print error message'''
-    print(f"{Fore.RED}{Style.BRIGHT}{message}{Style.RESET_ALL}")
+    if pbar:
+        pbar.write(f"{Fore.RED}{Style.BRIGHT}{message}")
+    else:
+        print(f"{Fore.RED}{Style.BRIGHT}{message}")
 
-def info(message: str) -> None:
+def info(message: str, pbar: Optional[tqdm] = None) -> None:
     '''print info message'''
-    print(f"{Fore.BLUE}{message}{Style.RESET_ALL}")
+    if pbar:
+        pbar.write(f"{Fore.BLUE}{message}")
+    else:
+        print(f"{Fore.BLUE}{message}")
 
-def warning(message: str) -> None:
+def warning(message: str, pbar: Optional[tqdm] = None) -> None:
     '''print warning message'''
-    print(f"{Fore.YELLOW}{Style.BRIGHT}{message}{Style.RESET_ALL}")
+    if pbar:
+        pbar.write(f"{Fore.YELLOW}{Style.BRIGHT}{message}")
+    else:
+        print(f"{Fore.YELLOW}{Style.BRIGHT}{message}")
 
-def printcmd(cmd: str) -> None:
+def printcmd(cmd: str, pbar: Optional[tqdm] = None) -> None:
     '''prints a command'''
-    print(f"{Fore.CYAN}{cmd}{Style.RESET_ALL}")
+    if pbar:
+        pbar.write(f"{Fore.CYAN}{cmd}")
+    else:
+        print(f"{Fore.CYAN}{cmd}")
 
 def progressbar(description: str, duration: float = 0.5) -> None:
     '''progress bar'''
@@ -40,21 +54,21 @@ def progressbar(description: str, duration: float = 0.5) -> None:
             time.sleep(duration / 100)
             pbar.update(1)
 
-def runcmd(args: List[str], cont: bool, dry: bool = False, showprogress: bool = True) -> Optional[subprocess.CompletedProcess]:
+def runcmd(args: List[str], cont: bool, dry: bool = False, mainpbar: Optional[tqdm] = None, showprogress: bool = True,) -> Optional[subprocess.CompletedProcess]:
     '''executes a command with error handling'''
     cwd = os.getcwd()
     cmdstr = subprocess.list2cmdline(args)
     
     if dry:
-        printcmd(cmdstr)
+        printcmd(cmdstr, mainpbar)
         return None
 
     try:
-        info(f"running command from directory: {Style.BRIGHT}{cwd}{Style.RESET_ALL}:")
-        printcmd(f"  $ {cmdstr}")
+        info(f"running command from directory: {Style.BRIGHT}{cwd}:", mainpbar)
+        printcmd(f"  $ {cmdstr}", mainpbar)
         
         if showprogress:
-            with tqdm(total=100, desc=f"{Fore.CYAN}mrrping...{Style.RESET_ALL}", bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}', position=0) as pbar:
+            with tqdm(total=100, desc=f"{Fore.CYAN}mrrping...{Style.RESET_ALL}", bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}', position=0, leave=False) as pbar:
                 # start progress bar
                 pbar.update(10)
                 
@@ -63,7 +77,7 @@ def runcmd(args: List[str], cont: bool, dry: bool = False, showprogress: bool = 
                     for i in range(10, 100, 2):
                         time.sleep(0.01)
                         pbar.update(2)
-                    success("  ✓ completed successfully")
+                    success("  ✓ completed successfully", mainpbar)
                     return result
                 except subprocess.CalledProcessError as e:
                     # change bar to red if command fails.
@@ -71,16 +85,16 @@ def runcmd(args: List[str], cont: bool, dry: bool = False, showprogress: bool = 
                     raise e  # raise exception
         else:
             result = subprocess.run(args, check=True, cwd=cwd)
-            success("  ✓ completed successfully")
+            success("  ✓ completed successfully", mainpbar)
             return result
             
     except subprocess.CalledProcessError as e:
-        error(f"\n❌ command failed with exit code {e.returncode}:")
-        printcmd(f"  $ {cmdstr}")
+        error(f"\n❌ command failed with exit code {e.returncode}:", mainpbar)
+        printcmd(f"  $ {cmdstr}", mainpbar)
         if e.stdout:
-            print(f"{Fore.WHITE}{e.stdout.decode('utf-8', errors='replace')}")
+            info(f"{Fore.WHITE}{e.stdout.decode('utf-8', errors='replace')}", mainpbar)
         if e.stderr:
-            print(f"{Fore.RED}{e.stderr.decode('utf-8', errors='replace')}")
+            error(f"{Fore.RED}{e.stderr.decode('utf-8', errors='replace')}", mainpbar)
         
         if not cont:
             sys.exit(e.returncode)
@@ -243,57 +257,57 @@ def main() -> None:
     print() 
 
     # execute pipeline
-    with tqdm(total=len(steps), desc=f"{Fore.MAGENTA}meowing...{Style.RESET_ALL}", bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}', position=1, leave=True) as main_progress:
+    with tqdm(total=len(steps), desc=f"{Fore.MAGENTA}meowing...{Style.RESET_ALL}", bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}', position=1, leave=True) as progressbar:
         # status check
         if args.status:
-            info(f"\n{Style.BRIGHT}status check{Style.RESET_ALL}")
-            runcmd(["git", "status"], args.cont, args.dry, showprogress=False)
-            main_progress.update(1)
+            info(f"\n{Style.BRIGHT}status check{Style.RESET_ALL}", progressbar)
+            runcmd(["git", "status"], args.cont, args.dry, mainpbar=progressbar, showprogress=False)
+            progressbar.update(1)
 
         # update submodules
         if args.updatesubmodules:
-            info(f"\n{Style.BRIGHT}updating submodules{Style.RESET_ALL}")
-            runcmd(["git", "submodule", "update", "--init", "--recursive"], args.cont, args.dry)
-            main_progress.update(1)
+            info(f"\n{Style.BRIGHT}updating submodules{Style.RESET_ALL}", progressbar)
+            runcmd(["git", "submodule", "update", "--init", "--recursive"], args.cont, args.dry, mainpbar=progressbar)
+            progressbar.update(1)
 
         # stash changes
         if args.stash:
-            info(f"\n{Style.BRIGHT}stashing changes{Style.RESET_ALL}")
-            runcmd(["git", "stash"], args.cont, args.dry)
-            main_progress.update(1)
+            info(f"\n{Style.BRIGHT}stashing changes{Style.RESET_ALL}", progressbar)
+            runcmd(["git", "stash"], args.cont, args.dry, mainpbar=progressbar)
+            progressbar.update(1)
 
         # pull
         if args.pull or args.norebase:
-            info(f"\n{Style.BRIGHT}pulling from remote{Style.RESET_ALL}")
+            info(f"\n{Style.BRIGHT}pulling from remote{Style.RESET_ALL}",progressbar)
             pullhandler(args)
-            main_progress.update(1)
+            progressbar.update(1)
 
         # stage changes
-        info(f"\n{Style.BRIGHT}staging changes{Style.RESET_ALL}")
+        info(f"\n{Style.BRIGHT}staging changes{Style.RESET_ALL}", progressbar)
         addcmd: List[str] = ["git", "add", *args.add] if args.add else ["git", "add", "."]
         if args.verbose and not args.quiet:
             addcmd.append("--verbose")
-        runcmd(addcmd, args.cont, args.dry)
-        main_progress.update(1)
+        runcmd(addcmd, args.cont, args.dry, mainpbar=progressbar)
+        progressbar.update(1)
 
         # diff
         if args.diff:
-            info(f"\n{Style.BRIGHT}showing diff{Style.RESET_ALL}")
-            runcmd(["git", "diff", "--staged"], args.cont, args.dry, showprogress=False)
-            main_progress.update(1)
+            info(f"\n{Style.BRIGHT}showing diff{Style.RESET_ALL}", progressbar)
+            runcmd(["git", "diff", "--staged"], args.cont, args.dry, showprogress=False, mainpbar=progressbar)
+            progressbar.update(1)
 
         # commit
-        info(f"\n{Style.BRIGHT}committing{Style.RESET_ALL}")
+        info(f"\n{Style.BRIGHT}committing{Style.RESET_ALL}", progressbar)
         commit = commithelper(args)
-        runcmd(commit, args.cont, args.dry)
-        main_progress.update(1)
+        runcmd(commit, args.cont, args.dry, mainpbar=progressbar)
+        progressbar.update(1)
 
         # push
         push: Optional[List[str]] = pushhelper(args)
         if push:
-            info(f"\n{Style.BRIGHT}pushing to remote{Style.RESET_ALL}")
-            runcmd(push, cont=args.cont, dry=args.dry)
-            main_progress.update(1)
+            info(f"\n{Style.BRIGHT}pushing to remote{Style.RESET_ALL}", progressbar)
+            runcmd(push, cont=args.cont, dry=args.dry, mainpbar=progressbar)
+            progressbar.update(1)
     
     # success message
     print("\n😺")
