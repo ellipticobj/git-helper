@@ -6,6 +6,7 @@ from argparse import ArgumentParser, Namespace, _ArgumentGroup
 from typing import List, Union, Optional
 from colorama import Fore, Style, init # type: ignore
 from tqdm import tqdm # type: ignore
+from tqdm.utils import _term_move_up # type: ignore
 
 # initialize colorama
 init(autoreset=True)
@@ -37,9 +38,9 @@ def progressbar(description: str, duration: float = 0.5) -> None:
     with tqdm(total=100, desc=f"{Fore.CYAN}{description}{Style.RESET_ALL}", bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}') as pbar:
         for _ in range(100):
             time.sleep(duration / 100)
-            pbar.update(1) 
+            pbar.update(1)
 
-def runcmd(args: List[str], cont: bool, dry: bool = False, show_progress: bool = True) -> Optional[subprocess.CompletedProcess]:
+def runcmd(args: List[str], cont: bool, dry: bool = False, showprogress: bool = True) -> Optional[subprocess.CompletedProcess]:
     '''executes a command with error handling'''
     cwd = os.getcwd()
     cmdstr = subprocess.list2cmdline(args)
@@ -52,11 +53,22 @@ def runcmd(args: List[str], cont: bool, dry: bool = False, show_progress: bool =
         info(f"running command from directory: {Style.BRIGHT}{cwd}{Style.RESET_ALL}:")
         printcmd(f"  $ {cmdstr}")
         
-        if show_progress:
-            progressbar("executing command", 0.5)
-            result = subprocess.run(args, check=True, cwd=cwd, capture_output=True)
-            success("  ✓ completed successfully")
-            return result
+        if showprogress:
+            with tqdm(total=100, desc=f"{Fore.CYAN}mrrping...{Style.RESET_ALL}", bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}', position=0) as pbar:
+                # start progress bar
+                pbar.update(10)
+                
+                try:
+                    result = subprocess.run(args, check=True, cwd=cwd, capture_output=True)
+                    for i in range(10, 100, 2):
+                        time.sleep(0.01)
+                        pbar.update(2)
+                    success("  ✓ completed successfully")
+                    return result
+                except subprocess.CalledProcessError as e:
+                    # change bar to red if command fails.
+                    pbar.desc = f"{Fore.RED}command failed{Style.RESET_ALL}"
+                    raise e  # raise exception
         else:
             result = subprocess.run(args, check=True, cwd=cwd)
             success("  ✓ completed successfully")
@@ -128,7 +140,7 @@ def pullhandler(args: Namespace) -> None:
     pull: List[str] = ["git", "pull"]
     if args.norebase:
         pull.append("--no-rebase")
-    if args.pull:
+    if args.pull or args.norebase:
         runcmd(pull, args.cont, args.dry)
 
 def commithelper(args: Namespace) -> List[str]:
@@ -231,56 +243,57 @@ def main() -> None:
     print()
 
     # execute pipeline
-    # with tqdm(total=len(steps), desc=f"{Fore.MAGENTA}meowing...{Style.RESET_ALL}", bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}') as progressbar:
+    with tqdm(total=len(steps), desc=f"{Fore.MAGENTA}meowing...{Style.RESET_ALL}", bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}', position=1, leave=True) as main_progress:
         # status check
-    if args.status:
-        info(f"\n{Style.BRIGHT}status check{Style.RESET_ALL}")
-        runcmd(["git", "status"], args.cont, args.dry, show_progress=False)
-        # progressbar.update(1)
+        if args.status:
+            info(f"\n{Style.BRIGHT}status check{Style.RESET_ALL}")
+            runcmd(["git", "status"], args.cont, args.dry, showprogress=False)
+            main_progress.update(1)
 
-    # update submodules
-    if args.updatesubmodules:
-        info(f"\n{Style.BRIGHT}updating submodules{Style.RESET_ALL}")
-        runcmd(["git", "submodule", "update", "--init", "--recursive"], args.cont, args.dry)
-        # progressbar.update(1)
+        # update submodules
+        if args.updatesubmodules:
+            info(f"\n{Style.BRIGHT}updating submodules{Style.RESET_ALL}")
+            runcmd(["git", "submodule", "update", "--init", "--recursive"], args.cont, args.dry)
+            main_progress.update(1)
 
-    # stash changes
-    if args.stash:
-        info(f"\n{Style.BRIGHT}stashing changes{Style.RESET_ALL}")
-        runcmd(["git", "stash"], args.cont, args.dry)
-        # progressbar.update(1)
+        # stash changes
+        if args.stash:
+            info(f"\n{Style.BRIGHT}stashing changes{Style.RESET_ALL}")
+            runcmd(["git", "stash"], args.cont, args.dry)
+            main_progress.update(1)
 
-    # pull
-    if args.pull or args.norebase:
-        info(f"\n{Style.BRIGHT}pulling from remote{Style.RESET_ALL}")
-        pullhandler(args)
-        # progressbar.update(1)
+        # pull
+        if args.pull or args.norebase:
+            info(f"\n{Style.BRIGHT}pulling from remote{Style.RESET_ALL}")
+            pullhandler(args)
+            main_progress.update(1)
 
-    # stage changes
-    info(f"\n{Style.BRIGHT}staging changes{Style.RESET_ALL}")
-    addcmd: List[str] = ["git", "add", *args.add] if args.add else ["git", "add", "."]
-    if args.verbose and not args.quiet:
-        addcmd.append("--verbose")
-    runcmd(addcmd, args.cont, args.dry)
-    # progressbar.update(1)
+        # stage changes
+        info(f"\n{Style.BRIGHT}staging changes{Style.RESET_ALL}")
+        addcmd: List[str] = ["git", "add", *args.add] if args.add else ["git", "add", "."]
+        if args.verbose and not args.quiet:
+            addcmd.append("--verbose")
+        runcmd(addcmd, args.cont, args.dry)
+        main_progress.update(1)
 
-    # diff
-    if args.diff:
-        info(f"\n{Style.BRIGHT}showing diff{Style.RESET_ALL}")
-        runcmd(["git", "diff", "--staged"], args.cont, args.dry, show_progress=False)
-        # progressbar.update(1)
+        # diff
+        if args.diff:
+            info(f"\n{Style.BRIGHT}showing diff{Style.RESET_ALL}")
+            runcmd(["git", "diff", "--staged"], args.cont, args.dry, showprogress=False)
+            main_progress.update(1)
 
-    # commit
-    info(f"\n{Style.BRIGHT}committing{Style.RESET_ALL}")
-    commit = commithelper(args)
-    runcmd(commit, args.cont, args.dry)
-    # progressbar.update(1)
+        # commit
+        info(f"\n{Style.BRIGHT}committing{Style.RESET_ALL}")
+        commit = commithelper(args)
+        runcmd(commit, args.cont, args.dry)
+        main_progress.update(1)
 
-    # push
-    push: Optional[List[str]] = pushhelper(args)
-    if push:
-        runcmd(push, cont=args.cont, dry=args.dry)
-        # progressbar.update(1)
+        # push
+        push: Optional[List[str]] = pushhelper(args)
+        if push:
+            info(f"\n{Style.BRIGHT}pushing to remote{Style.RESET_ALL}")
+            runcmd(push, cont=args.cont, dry=args.dry)
+            main_progress.update(1)
     
     # success message
     print("\n😺")
