@@ -28,7 +28,7 @@ def initparser(parser: ArgumentParser) -> None:
     parser.add_argument("message", nargs='?', help="commit message, overrides --no-message")
     parser.add_argument("-v", "--version", required=False, dest="ver", action='store_true', help="displays version number")
     parser.add_argument("-n", "--allow-empty-message", "--no-message", dest="nomsg", required=False, action='store_true', help="allows empty commit message, has to be provided if no message is given")
-    parser.add_argument("-u", "--set-upstream", "--upstream", nargs="2", dest="upstream", required=False, help="upstream branch to push to. takes two arguments: remote, branch")
+    parser.add_argument("-u", "--set-upstream", "--upstream", nargs=2, dest="upstream", required=False, help="upstream branch to push to. takes two arguments: remote, branch")
     parser.add_argument("-d", "--dry-run", "--dry", dest="dry", required=False, action="store_true", help="prints out the commands that will be run without actually running them")
     parser.add_argument("-c", "--continue", required=False, dest="cont", action='store_true', help="continues even if there are errors")
     parser.add_argument("-f", "--force", required=False, action='store_true', help="force push")
@@ -69,8 +69,8 @@ def main() -> None:
         sys.exit(1)
 
     # validation
-    if not args.amend and not args.nomsg and not args.message:
-        parser.error("commit message required (use --amend, --no-message, or provide message)")
+    if not args.nomsg and not args.message:
+        parser.error("commit message required (use --no-message, or provide message)")
         sys.exit(1)
 
     verbose = args.verbose and not args.quiet
@@ -88,11 +88,7 @@ def main() -> None:
     gpullc: List[str] = ["git", "pull"]
     if args.norebase:
         gpullc.append("--no-rebase")
-        runcmd(gpullc, cont=args.cont, dry=args.dry)
-    elif args.pull_rebase:
-        gpullc.append("--rebase")
-        runcmd(gpullc, cont=args.cont, dry=args.dry)
-    elif args.pull:
+    if args.pull:
         runcmd(gpullc, cont=args.cont, dry=args.dry)
     
     if args.stash:
