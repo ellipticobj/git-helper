@@ -26,3 +26,4 @@ build:
 ```
 
 # screenshots
+![screenshot](assets/screenshot.png)
