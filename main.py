@@ -7,7 +7,7 @@ from typing import List, Union, Optional
 from colorama import Fore, Style, init # type: ignore
 from tqdm import tqdm # type: ignore
 
-# Initialize colorama
+# initialize colorama
 init(autoreset=True)
 
 VERSION = "0.2.1-preview"
