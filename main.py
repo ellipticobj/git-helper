@@ -244,7 +244,7 @@ def runcmd(args: List[str], flags: Namespace, mainpbar: Optional[tqdm] = None, s
         if not flags.cont:
             sys.exit(e.returncode)
         else:
-            info(f"{Fore.CYAN}Continuing...")
+            info(f"{Fore.CYAN}continuing...")
     return None
 
 def main() -> None:
