@@ -88,7 +88,7 @@ def commithelper(args: Namespace) -> List[str]:
 
 def pushhelper(args: Namespace) -> Optional[List[str]]:
     '''adds flags to the push command'''
-    if not args.no_push:
+    if not args.nopush:
         push: List[str] = ["git", "push"]
         if args.tags:
             push.append("--tags")

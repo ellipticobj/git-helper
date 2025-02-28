@@ -12,7 +12,7 @@ from subprocess import list2cmdline, run as runsubprocess, CompletedProcess, Cal
 # initialize colorama
 init(autoreset=True)
 
-VERSION = "0.2.3-preview2c"
+VERSION = "0.2.3-preview2d"
 
 def pullhandler(args: Namespace) -> None:
     '''handles git pull operations'''

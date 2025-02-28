@@ -1,2 +1,5 @@
-colorama>=0.4.6
-tqdm>=4.66.0
+colorama
+tqdm
+cython
+setuptools
+argparse
