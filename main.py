@@ -54,87 +54,6 @@ def progressbar(description: str, duration: float = 0.5) -> None:
             time.sleep(duration / 100)
             pbar.update(1)
 
-def runcmd(args: List[str], flags: Namespace, mainpbar: Optional[tqdm] = None, showprogress: bool = True,) -> Optional[subprocess.CompletedProcess]:
-    '''executes a command with error handling'''
-    cwd = os.getcwd()
-    cmdstr = subprocess.list2cmdline(args)
-    
-    if flags.dry:
-        printcmd(cmdstr, mainpbar)
-        return None
-
-    try:
-        info(f"\nrunning command from directory: {Style.BRIGHT}{cwd}:", mainpbar)
-        printcmd(f"  $ {cmdstr}", mainpbar)
-        
-        # capture output to parse relevant messages
-        cmdargs = args.copy()
-        result = None
-        
-        if showprogress:
-            with tqdm(total=100, desc=f"{Fore.CYAN}mrrping...{Style.RESET_ALL}", bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}', position=0, leave=False) as pbar:
-                # start progress bar
-                pbar.update(10)
-                
-                try:
-                    result = subprocess.run(cmdargs, check=True, cwd=cwd, capture_output=True)
-                    # complete bar immediately
-                    pbar.n = 100
-                    pbar.refresh()
-                    
-                    # parse output
-                    outputstr = result.stdout.decode('utf-8', errors='replace').strip()
-                    if outputstr:
-                        # check for specific outputs
-                        if 'Everything up-to-date' in outputstr:
-                            info(f"  ℹ️ {Fore.CYAN}Everything already up-to-date", mainpbar)
-                        elif 'nothing to commit' in outputstr:
-                            info(f"  ℹ️ {Fore.CYAN}Nothing to commit, working tree clean", mainpbar)
-                        elif 'create mode' in outputstr or 'delete mode' in outputstr:
-                            # show additions/deletions
-                            info(f"  ℹ️ {Fore.WHITE}{outputstr}", mainpbar)
-                        elif len(outputstr) < 200:  # show short messages
-                            if flags.message in outputstr: # dont duplicate commit message
-                                pass
-                            else:
-                                info(f"  ℹ️ {Fore.WHITE}{outputstr}", mainpbar)
-                    
-                    success("  ✓ completed successfully", mainpbar)
-                    return result
-                except subprocess.CalledProcessError as e:
-                    # change bar to red if command fails
-                    pbar.desc = f"{Fore.RED}command failed{Style.RESET_ALL}"
-                    pbar.n = 100  # still complete the bar
-                    pbar.refresh()
-                    raise e  # raise exception
-        else:
-            result = subprocess.run(cmdargs, check=True, cwd=cwd, capture_output=True)
-            # parse output
-            outputstr = result.stdout.decode('utf-8', errors='replace').strip()
-            if outputstr:
-                # check for specific outputs
-                if 'Everything up-to-date' in outputstr:
-                    info(f"  ℹ️ {Fore.CYAN}Everything already up-to-date", mainpbar)
-                elif 'nothing to commit' in outputstr:
-                    info(f"  ℹ️ {Fore.CYAN}Nothing to commit, working tree clean", mainpbar)
-                elif len(outputstr) < 200:  # short messages
-                    info(f"  ℹ️ {Fore.WHITE}{outputstr}", mainpbar)
-            
-            success("  ✓ completed successfully", mainpbar)
-            return result
-            
-    except subprocess.CalledProcessError as e:
-        error(f"\n❌ command failed with exit code {e.returncode}:", mainpbar)
-        printcmd(f"  $ {cmdstr}", mainpbar)
-        if e.stdout:
-            info(f"{Fore.WHITE}{e.stdout.decode('utf-8', errors='replace')}", mainpbar)
-        if e.stderr:
-            error(f"{Fore.RED}{e.stderr.decode('utf-8', errors='replace')}", mainpbar)
-        
-        if not flags.cont:
-            sys.exit(e.returncode)
-    return None
-
 def initcommands(parser: ArgumentParser) -> None:
     '''initialize commands with commands.'''
     # core functionality
@@ -236,6 +155,87 @@ def pushhelper(args: Namespace) -> Union[None, List[str]]:
         return push
     return None
 
+def runcmd(args: List[str], flags: Namespace, mainpbar: Optional[tqdm] = None, showprogress: bool = True,) -> Optional[subprocess.CompletedProcess]:
+    '''executes a command with error handling'''
+    cwd = os.getcwd()
+    cmdstr = subprocess.list2cmdline(args)
+    
+    if flags.dry:
+        printcmd(cmdstr, mainpbar)
+        return None
+
+    try:
+        info(f"\n  running command from directory: {Style.BRIGHT}{cwd}:", mainpbar)
+        printcmd(f"    $ {cmdstr}", mainpbar)
+        
+        # capture output to parse relevant messages
+        cmdargs = args.copy()
+        result = None
+        
+        if showprogress:
+            with tqdm(total=100, desc=f"{Fore.CYAN}mrrping...{Style.RESET_ALL}", bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}', position=0, leave=False) as pbar:
+                # start progress bar
+                pbar.update(10)
+                
+                try:
+                    result = subprocess.run(cmdargs, check=True, cwd=cwd, capture_output=True)
+                    # complete bar immediately
+                    pbar.n = 100
+                    pbar.refresh()
+                    
+                    # parse output
+                    outputstr = result.stdout.decode('utf-8', errors='replace').strip()
+                    if outputstr:
+                        # check for specific outputs
+                        if 'Everything up-to-date' in outputstr:
+                            info(f"    ℹ️ {Fore.CYAN}Everything already up-to-date", mainpbar)
+                        elif 'nothing to commit' in outputstr:
+                            info(f"    ℹ️ {Fore.CYAN}Nothing to commit, working tree clean", mainpbar)
+                        elif 'create mode' in outputstr or 'delete mode' in outputstr:
+                            # show additions/deletions
+                            info(f"    ℹ️ {Fore.BLACK}{outputstr}", mainpbar)
+                        elif len(outputstr) < 200:  # show short messages
+                            if flags.message in outputstr: # dont duplicate commit message
+                                pass
+                            else:
+                                info(f"    ℹ️ {Fore.BLACK}{outputstr}", mainpbar)
+                    
+                    success("  ✓ completed successfully", mainpbar)
+                    return result
+                except subprocess.CalledProcessError as e:
+                    # change bar to red if command fails
+                    pbar.desc = f"{Fore.RED}  command failed{Style.RESET_ALL}"
+                    pbar.n = 100  # still complete the bar
+                    pbar.refresh()
+                    raise e  # raise exception
+        else:
+            result = subprocess.run(cmdargs, check=True, cwd=cwd, capture_output=True)
+            # parse output
+            outputstr = result.stdout.decode('utf-8', errors='replace').strip()
+            if outputstr:
+                # check for specific outputs
+                if 'Everything up-to-date' in outputstr:
+                    info(f"    ℹ️ {Fore.CYAN}everything up to date!", mainpbar)
+                elif 'nothing to commit' in outputstr:
+                    info(f"    ℹ️ {Fore.CYAN}nothing to commit!", mainpbar)
+                elif len(outputstr) < 200:  # short messages
+                    info(f"    ℹ️ {Fore.BLACK}{outputstr}", mainpbar)
+            
+            success("  ✓ completed successfully", mainpbar)
+            return result
+            
+    except subprocess.CalledProcessError as e:
+        error(f"\n❌ command failed with exit code {e.returncode}:", mainpbar)
+        printcmd(f"  $ {cmdstr}", mainpbar)
+        if e.stdout:
+            info(f"{Fore.BLACK}{e.stdout.decode('utf-8', errors='replace')}", mainpbar)
+        if e.stderr:
+            error(f"{Fore.RED}{e.stderr.decode('utf-8', errors='replace')}", mainpbar)
+        
+        if not flags.cont:
+            sys.exit(e.returncode)
+    return None
+
 def main() -> None:
     # fancy header 
     print(f"{Fore.MAGENTA}{Style.BRIGHT} meow {Style.RESET_ALL}{Fore.CYAN}v{VERSION}{Style.RESET_ALL}")
@@ -294,7 +294,7 @@ def main() -> None:
     # show pipeline overview
     print(f"\n{Fore.CYAN}{Style.BRIGHT}meows to meow:{Style.RESET_ALL}")
     for i, step in enumerate(steps, 1):
-        print(f"  {Fore.BLUE}{i}.{Style.RESET_ALL} {Fore.WHITE}{step}{Style.RESET_ALL}")
+        print(f"  {Fore.BLUE}{i}.{Style.RESET_ALL} {Fore.BLACK}{step}{Style.RESET_ALL}")
     print()
 
     # execute pipeline
