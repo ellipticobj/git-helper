@@ -10,7 +10,7 @@ from tqdm import tqdm # type: ignore
 # initialize colorama
 init(autoreset=True)
 
-VERSION = "0.2.3-preview2"
+VERSION = "0.2.3-preview2a"
 
 def success(message: str, pbar: Optional[tqdm] = None) -> None:
     '''print success message'''
@@ -182,7 +182,7 @@ def runcmd(args: List[str], flags: Namespace, mainpbar: Optional[tqdm] = None, s
         result = None
         
         if showprogress:
-            with tqdm(total=100, desc=f"{Fore.CYAN}mrrping...{Style.RESET_ALL}", bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}', position=0, leave=True) as pbar:
+            with tqdm(total=100, desc=f"{Fore.CYAN}mrrping...{Style.RESET_ALL}", bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}', position=1, leave=True) as pbar:
                 # start progress bar
                 pbar.update(10)
                 
@@ -315,7 +315,7 @@ def main() -> None:
     print()
 
     # execute pipeline
-    with tqdm(total=len(steps), desc=f"{Fore.MAGENTA}meowing...{Style.RESET_ALL}", bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}', position=1, leave=True) as progressbar:
+    with tqdm(total=len(steps), desc=f"{Fore.MAGENTA}meowing...{Style.RESET_ALL}", bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}', position=0, leave=True) as progressbar:
         completedsteps = 0
         totalsteps = len(steps)
         
@@ -385,7 +385,7 @@ def main() -> None:
             progressbar.n = totalsteps
             progressbar.refresh()
         
-        progressbar.clear()
+        progressbar.disable()
     
     # success message
     print("\n😺")
