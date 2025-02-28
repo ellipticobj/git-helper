@@ -2,6 +2,7 @@ import os
 import sys
 import subprocess
 import time
+import threading
 from argparse import ArgumentParser, Namespace, _ArgumentGroup
 from typing import List, Union, Optional
 from colorama import Fore, Style, init # type: ignore
@@ -53,6 +54,56 @@ def progressbar(description: str, duration: float = 0.5) -> None:
         for _ in range(100):
             time.sleep(duration / 100)
             pbar.update(1)
+
+def loadingthread(message: str, stopevent: threading.Event) -> None:
+    '''animated loading icon function to run in a thread'''
+    frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
+    i = 0
+    message = f"{Fore.CYAN}{message}{Style.RESET_ALL}"
+    
+    while not stopevent.is_set():
+        sys.stdout.write(f'\r{frames[i]} {message}')
+        sys.stdout.flush()
+        time.sleep(0.1)
+        i = (i + 1) % len(frames)
+    
+    # clear the line
+    sys.stdout.write(f'\r {len(message)*2}\r')
+    sys.stdout.flush()
+
+def startloading(message: str) -> tuple[threading.Thread, threading.Event]:
+    '''start loading animation in a thread'''
+    stop = threading.Event()
+    anithread = threading.Thread(
+        target=loadingthread,
+        args=(message, stop),
+        daemon=True
+    )
+    anithread.start()
+    return anithread, stop
+
+def stoploading(threadinfo: tuple[threading.Thread, threading.Event]) -> None:
+    '''stop threaded loading animation'''
+    thread, stop = threadinfo
+    stop.set()
+    thread.join(timeout=0.2)  # wait for the thread to finish!!!!
+
+def animatedloading(message: str, duration: float = 2.0) -> None:
+    '''unthreaded loading animation'''
+    frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
+    i = 0
+    message = f"{Fore.CYAN}{message}{Style.RESET_ALL}"
+    endtime = time.time() + duration
+    
+    while time.time() < endtime:
+        sys.stdout.write(f'\r{frames[i]} {message}')
+        sys.stdout.flush()
+        time.sleep(0.1)
+        i = (i + 1) % len(frames)
+    
+    # clear the line
+    sys.stdout.write(f'\r {len(message)*2}\r')
+    sys.stdout.flush()
 
 def initcommands(parser: ArgumentParser) -> None:
     '''initialize commands with commands.'''
@@ -183,14 +234,16 @@ def runcmd(args: List[str], flags: Namespace, mainpbar: Optional[tqdm] = None, s
         
         if showprogress:
             with tqdm(total=100, desc=f"{Fore.CYAN}mrrping...{Style.RESET_ALL}", bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}', position=1, leave=True) as pbar:
-                # start progress bar
                 pbar.update(10)
+                animation = startloading(f"executing {cmdargs[0]}...")
                 
                 try:
                     result = subprocess.run(cmdargs, check=True, cwd=cwd, capture_output=True)
                     pbar.n = 50
                     pbar.refresh()
                     
+                    stoploading(animation)
+
                     # parse output
                     outputstr = result.stdout.decode('utf-8', errors='replace').strip()
                     pbar.n = 80
@@ -216,6 +269,8 @@ def runcmd(args: List[str], flags: Namespace, mainpbar: Optional[tqdm] = None, s
                     success("  ✓ completed successfully", mainpbar)
                     return result
                 except subprocess.CalledProcessError as e:
+                    stoploading(animation)
+                    
                     # change bar to red if command fails
                     pbar.desc = f"{Fore.RED} ❌ command failed{Style.RESET_ALL}"
                     pbar.colour = 'magenta'
@@ -255,6 +310,9 @@ def main() -> None:
     # fancy header 
     print(f"{Fore.MAGENTA}{Style.BRIGHT} meow {Style.RESET_ALL}{Fore.CYAN}v{VERSION}{Style.RESET_ALL}")
 
+    # Start animated loading icon in a thread during initialization
+    animation = startloading("Initializing meow...")
+    
     # init 
     parser: ArgumentParser = ArgumentParser(
         prog=f"{Fore.MAGENTA}{Style.BRIGHT}meow{Style.RESET_ALL}",
@@ -264,6 +322,9 @@ def main() -> None:
 
     # get args
     args: Namespace = parser.parse_args()
+    
+    # Stop the animation after initialization
+    stoploading(animation)
 
     # check args
     if len(sys.argv) == 1:
@@ -295,6 +356,8 @@ def main() -> None:
         error(f"error: {str(e)}")
         sys.exit(1)
 
+    animation = startloading("preparing...")
+    
     # display pipeline steps
     steps = []
     if args.status:
@@ -311,6 +374,8 @@ def main() -> None:
     steps.append("commit changes")
     if not args.no_push:
         steps.append("push to remote")
+    
+    stoploading(animation)
     
     # show pipeline overview
     print(f"\n{Fore.CYAN}{Style.BRIGHT}meows to meow:{Style.RESET_ALL}")
@@ -347,7 +412,7 @@ def main() -> None:
         # pull
         if args.pull or args.norebase:
             info(f"\n{Style.BRIGHT}pulling from remote{Style.RESET_ALL}",progressbar)
-            # Create a copy of args with the progress bar added
+            # create a copy of args with the progress bar added
             args.mainpbar = progressbar
             pullhandler(args)
             completedsteps += 1
