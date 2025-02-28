@@ -67,24 +67,56 @@ def runcmd(args: List[str], cont: bool, dry: bool = False, mainpbar: Optional[tq
         info(f"\nrunning command from directory: {Style.BRIGHT}{cwd}:", mainpbar)
         printcmd(f"  $ {cmdstr}", mainpbar)
         
+        # Always capture output to parse relevant messages
+        cmd_args = args.copy()
+        result = None
+        
         if showprogress:
             with tqdm(total=100, desc=f"{Fore.CYAN}mrrping...{Style.RESET_ALL}", bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}', position=0, leave=False) as pbar:
                 # start progress bar
                 pbar.update(10)
                 
                 try:
-                    result = subprocess.run(args, check=True, cwd=cwd, capture_output=True)
-                    for i in range(10, 100, 2):
-                        time.sleep(0.01)
-                        pbar.update(2)
+                    result = subprocess.run(cmd_args, check=True, cwd=cwd, capture_output=True)
+                    # Complete progress bar immediately
+                    pbar.n = 100
+                    pbar.refresh()
+                    
+                    # Parse output to display relevant git information
+                    output_str = result.stdout.decode('utf-8', errors='replace').strip()
+                    if output_str:
+                        # Check for specific git command outputs
+                        if 'Everything up-to-date' in output_str:
+                            info(f"  ℹ️ {Fore.CYAN}Everything already up-to-date", mainpbar)
+                        elif 'nothing to commit' in output_str:
+                            info(f"  ℹ️ {Fore.CYAN}Nothing to commit, working tree clean", mainpbar)
+                        elif 'create mode' in output_str or 'delete mode' in output_str:
+                            # For git add/commit that shows file additions/deletions
+                            info(f"  ℹ️ {Fore.WHITE}{output_str}", mainpbar)
+                        elif len(output_str) < 200:  # Only show short messages directly
+                            info(f"  ℹ️ {Fore.WHITE}{output_str}", mainpbar)
+                    
                     success("  ✓ completed successfully", mainpbar)
                     return result
                 except subprocess.CalledProcessError as e:
-                    # change bar to red if command fails.
+                    # change bar to red if command fails
                     pbar.desc = f"{Fore.RED}command failed{Style.RESET_ALL}"
+                    pbar.n = 100  # Still complete the progress bar
+                    pbar.refresh()
                     raise e  # raise exception
         else:
-            result = subprocess.run(args, check=True, cwd=cwd)
+            result = subprocess.run(cmd_args, check=True, cwd=cwd, capture_output=True)
+            # Parse output to display relevant git information
+            output_str = result.stdout.decode('utf-8', errors='replace').strip()
+            if output_str:
+                # Check for specific git command outputs
+                if 'Everything up-to-date' in output_str:
+                    info(f"  ℹ️ {Fore.CYAN}Everything already up-to-date", mainpbar)
+                elif 'nothing to commit' in output_str:
+                    info(f"  ℹ️ {Fore.CYAN}Nothing to commit, working tree clean", mainpbar)
+                elif len(output_str) < 200:  # Only show short messages directly
+                    info(f"  ℹ️ {Fore.WHITE}{output_str}", mainpbar)
+            
             success("  ✓ completed successfully", mainpbar)
             return result
             
@@ -109,10 +141,10 @@ def initcommands(parser: ArgumentParser) -> None:
     # general options
     general_group: _ArgumentGroup = parser.add_argument_group("general options")
     general_group.add_argument("-v", "--version", action='store_true', help="show version")
-    general_group.add_argument("-d", "--dry", dest = "dry", action='store_true', help="preview commands without execution")
     general_group.add_argument("-c", "--continue", dest="cont", action='store_true', help="continue after errors")
     general_group.add_argument("-q", "--quiet", action='store_true', help="suppress output")
     general_group.add_argument("-ve", "--verbose", action='store_true', help="verbose output")
+    general_group.add_argument("--dry", dest = "dry", action='store_true', help="preview commands without execution")
     general_group.add_argument("--status", action='store_true', help="show git status before executing commands")
 
     # commit options
@@ -155,7 +187,10 @@ def pullhandler(args: Namespace) -> None:
     if args.norebase:
         pull.append("--no-rebase")
     if args.pull or args.norebase:
-        runcmd(pull, args.cont, args.dry)
+        if hasattr(args, 'mainpbar'): # checks of the main bar exists
+            runcmd(pull, args.cont, args.dry, mainpbar=args.mainpbar)
+        else:
+            runcmd(pull, args.cont, args.dry)
 
 def commithelper(args: Namespace) -> List[str]:
     commit: List[str] = ["git", "commit"]
@@ -217,6 +252,9 @@ def main() -> None:
     # get args
     args: Namespace = parser.parse_args()
 
+    if args.dry:
+        print(f"{Fore.MAGENTA}{Style.BRIGHT}dry run{Style.RESET_ALL}")
+
     if len(sys.argv) == 2:
         if sys.argv[1] == "meow":
             print(f"{Fore.MAGENTA}{Style.BRIGHT}meow meow :3{Style.RESET_ALL}")
@@ -258,28 +296,37 @@ def main() -> None:
 
     # execute pipeline
     with tqdm(total=len(steps), desc=f"{Fore.MAGENTA}meowing...{Style.RESET_ALL}", bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}', position=1, leave=True) as progressbar:
+        completedsteps = 0
+        totalsteps = len(steps)
+        
         # status check
         if args.status:
             info(f"{Style.BRIGHT}status check{Style.RESET_ALL}", progressbar)
             runcmd(["git", "status"], args.cont, args.dry, mainpbar=progressbar, showprogress=False)
+            completedsteps += 1
             progressbar.update(1)
 
         # update submodules
         if args.updatesubmodules:
             info(f"\n{Style.BRIGHT}updating submodules{Style.RESET_ALL}", progressbar)
             runcmd(["git", "submodule", "update", "--init", "--recursive"], args.cont, args.dry, mainpbar=progressbar)
+            completedsteps += 1
             progressbar.update(1)
 
         # stash changes
         if args.stash:
             info(f"\n{Style.BRIGHT}stashing changes{Style.RESET_ALL}", progressbar)
             runcmd(["git", "stash"], args.cont, args.dry, mainpbar=progressbar)
+            completedsteps += 1
             progressbar.update(1)
 
         # pull
         if args.pull or args.norebase:
             info(f"\n{Style.BRIGHT}pulling from remote{Style.RESET_ALL}",progressbar)
+            # Create a copy of args with the progress bar added
+            args.mainpbar = progressbar
             pullhandler(args)
+            completedsteps += 1
             progressbar.update(1)
 
         # stage changes
@@ -288,18 +335,21 @@ def main() -> None:
         if args.verbose and not args.quiet:
             addcmd.append("--verbose")
         runcmd(addcmd, args.cont, args.dry, mainpbar=progressbar)
+        completedsteps += 1
         progressbar.update(1)
 
         # diff
         if args.diff:
             info(f"\n{Style.BRIGHT}showing diff{Style.RESET_ALL}", progressbar)
             runcmd(["git", "diff", "--staged"], args.cont, args.dry, showprogress=False, mainpbar=progressbar)
+            completedsteps += 1
             progressbar.update(1)
 
         # commit
         info(f"\n{Style.BRIGHT}committing{Style.RESET_ALL}", progressbar)
         commit = commithelper(args)
         runcmd(commit, args.cont, args.dry, mainpbar=progressbar)
+        completedsteps += 1
         progressbar.update(1)
 
         # push
@@ -307,7 +357,13 @@ def main() -> None:
         if push:
             info(f"\n{Style.BRIGHT}pushing to remote{Style.RESET_ALL}", progressbar)
             runcmd(push, cont=args.cont, dry=args.dry, mainpbar=progressbar)
+            completedsteps += 1
             progressbar.update(1)
+        
+        # ensure progress bar is 100%
+        if completedsteps < totalsteps:
+            progressbar.n = totalsteps
+            progressbar.refresh()
     
     # success message
     print("\n😺")
