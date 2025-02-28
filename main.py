@@ -10,7 +10,7 @@ from tqdm import tqdm # type: ignore
 # initialize colorama
 init(autoreset=True)
 
-VERSION = "0.2.3-preview1"
+VERSION = "0.2.3-preview2"
 
 def success(message: str, pbar: Optional[tqdm] = None) -> None:
     '''print success message'''
@@ -54,13 +54,12 @@ def progressbar(description: str, duration: float = 0.5) -> None:
             time.sleep(duration / 100)
             pbar.update(1)
 
-def runcmd(args: List[str], flags: Namespace, cont: bool, dry: bool = False, mainpbar: Optional[tqdm] = None, bar: Optional[tqdm] = None, showprogress: bool = True,) -> Optional[subprocess.CompletedProcess]:
+def runcmd(args: List[str], flags: Namespace, mainpbar: Optional[tqdm] = None, showprogress: bool = True,) -> Optional[subprocess.CompletedProcess]:
     '''executes a command with error handling'''
-    # TODO: remove cont and dry and use flags instead
     cwd = os.getcwd()
     cmdstr = subprocess.list2cmdline(args)
     
-    if dry:
+    if flags.dry:
         printcmd(cmdstr, mainpbar)
         return None
 
@@ -132,7 +131,7 @@ def runcmd(args: List[str], flags: Namespace, cont: bool, dry: bool = False, mai
         if e.stderr:
             error(f"{Fore.RED}{e.stderr.decode('utf-8', errors='replace')}", mainpbar)
         
-        if not cont:
+        if not flags.cont:
             sys.exit(e.returncode)
     return None
 
@@ -192,7 +191,7 @@ def pullhandler(args: Namespace) -> None:
         pull.append("--no-rebase")
     if args.pull or args.norebase:
         if hasattr(args, 'mainpbar'): # checks of the main bar exists
-            runcmd(pull, args, args.cont, args.dry, mainpbar=args.mainpbar)
+            runcmd(pull, args, mainpbar=args.mainpbar)
         else:
             runcmd(pull, args, args.cont, args.dry)
 
@@ -306,21 +305,21 @@ def main() -> None:
         # status check
         if args.status:
             info(f"{Style.BRIGHT}status check{Style.RESET_ALL}", progressbar)
-            runcmd(["git", "status"], args, args.cont, args.dry, mainpbar=progressbar, showprogress=False)
+            runcmd(["git", "status"], args, mainpbar=progressbar, showprogress=False)
             completedsteps += 1
             progressbar.update(1)
 
         # update submodules
         if args.updatesubmodules:
             info(f"\n{Style.BRIGHT}updating submodules{Style.RESET_ALL}", progressbar)
-            runcmd(["git", "submodule", "update", "--init", "--recursive"], args, args.cont, args.dry, mainpbar=progressbar)
+            runcmd(["git", "submodule", "update", "--init", "--recursive"], args, mainpbar=progressbar)
             completedsteps += 1
             progressbar.update(1)
 
         # stash changes
         if args.stash:
             info(f"\n{Style.BRIGHT}stashing changes{Style.RESET_ALL}", progressbar)
-            runcmd(["git", "stash"], args, args.cont, args.dry, mainpbar=progressbar)
+            runcmd(["git", "stash"], args, mainpbar=progressbar)
             completedsteps += 1
             progressbar.update(1)
 
@@ -338,21 +337,21 @@ def main() -> None:
         addcmd: List[str] = ["git", "add", *args.add] if args.add else ["git", "add", "."]
         if args.verbose and not args.quiet:
             addcmd.append("--verbose")
-        runcmd(addcmd, args, args.cont, args.dry, mainpbar=progressbar)
+        runcmd(addcmd, args, mainpbar=progressbar)
         completedsteps += 1
         progressbar.update(1)
 
         # diff
         if args.diff:
             info(f"\n{Style.BRIGHT}showing diff{Style.RESET_ALL}", progressbar)
-            runcmd(["git", "diff", "--staged"], args, args.cont, args.dry, showprogress=False, mainpbar=progressbar)
+            runcmd(["git", "diff", "--staged"], args, showprogress=False, mainpbar=progressbar)
             completedsteps += 1
             progressbar.update(1)
 
         # commit
         info(f"\n{Style.BRIGHT}committing{Style.RESET_ALL}", progressbar)
         commit = commithelper(args)
-        runcmd(commit, args, args.cont, args.dry, mainpbar=progressbar)
+        runcmd(commit, args, mainpbar=progressbar)
         completedsteps += 1
         progressbar.update(1)
 
@@ -360,7 +359,7 @@ def main() -> None:
         push: Optional[List[str]] = pushhelper(args)
         if push:
             info(f"\n{Style.BRIGHT}pushing to remote{Style.RESET_ALL}", progressbar)
-            runcmd(push, args, cont=args.cont, dry=args.dry, mainpbar=progressbar)
+            runcmd(push, args, mainpbar=progressbar)
             completedsteps += 1
             progressbar.update(1)
         
