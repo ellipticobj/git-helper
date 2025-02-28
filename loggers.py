@@ -43,16 +43,13 @@ def printcmd(cmd: str, pbar: Optional[tqdm] = None) -> None:
         print(f"{Fore.CYAN}{cmd}")
 
 def printinfo(version: str) -> None:
+    '''print program info'''
     print(f"{Fore.MAGENTA}{Style.BRIGHT}meow{Style.RESET_ALL} version {Fore.CYAN}{version}{Style.RESET_ALL}")
     print(f"{Fore.BLUE}https://github.com/ellipticobj/meower{Style.RESET_ALL}")
     exit(1)
 
-def printversion(version: str) -> None:
-    print(f"{Fore.MAGENTA}{Style.BRIGHT}meow{Style.RESET_ALL} version {Fore.CYAN}{version}{Style.RESET_ALL}")
-    print(f"{Fore.BLUE}https://github.com/ellipticobj/meower{Style.RESET_ALL}")
-    exit()
-
 def printsteps(steps: List[str]) -> None:
+    '''prints pipeline steps'''
     for i, step in enumerate(steps, 1): 
         print(f"  {Fore.BLUE}{i}.{Style.RESET_ALL} {Fore.BLACK}{step}{Style.RESET_ALL}")
     print()

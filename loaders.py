@@ -23,7 +23,7 @@ def loadingthread(message: str, stopevent: Event) -> None:
     stdout.write(f'\r {len(message)*2}\r')
     stdout.flush()
 
-def startloading(message: str) -> tuple[Thread, Event]:
+def startloadinganimation(message: str) -> tuple[Thread, Event]:
     '''start loading animation in a thread'''
     stop = Event()
     anithread = Thread(
@@ -34,13 +34,13 @@ def startloading(message: str) -> tuple[Thread, Event]:
     anithread.start()
     return anithread, stop
 
-def stoploading(threadinfo: tuple[Thread, Event]) -> None:
+def stoploadinganimation(threadinfo: tuple[Thread, Event]) -> None:
     '''stop threaded loading animation'''
     thread, event = threadinfo
     event.set()
     thread.join(timeout=0.2)  # wait for the thread to finish!!!!
 
-def unthreadedloading(message: str, duration: float = 2.0) -> None:
+def unthreadedloadinganimation(message: str, duration: float = 2.0) -> None:
     '''unthreaded loading animation'''
     frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
     i = 0

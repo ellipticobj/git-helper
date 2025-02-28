@@ -3,16 +3,16 @@ from tqdm import tqdm
 from sys import exit, argv
 from typing import List, Optional
 from colorama import Fore, Style, init
-from loaders import startloading, stoploading
+from loaders import startloadinganimation, stoploadinganimation
 from argparse import ArgumentParser, Namespace
 from helpers import completebar, initcommands, validateargs, commithelper, pushhelper
-from loggers import success, error, info, printcmd, printinfo, printversion, printsteps
+from loggers import success, error, info, printcmd, printinfo, printsteps
 from subprocess import list2cmdline, run as runsubprocess, CompletedProcess, CalledProcessError
 
 # initialize colorama
 init(autoreset=True)
 
-VERSION = "0.2.3-preview2b"
+VERSION = "0.2.3-preview2c"
 
 def pullhandler(args: Namespace) -> None:
     '''handles git pull operations'''
@@ -25,22 +25,47 @@ def pullhandler(args: Namespace) -> None:
         else:
             runcmd(pull, args, args.cont, args.dry)
 
+def parseoutput(result: CompletedProcess, flags: Namespace, pbar: tqdm, mainpbar: Optional[tqdm]):
+    outputstr = result.stdout.decode('utf-8', errors='replace').strip()
+    pbar.n = 80
+    pbar.refresh()
+    if outputstr:
+        if flags.verbose:
+            # output everything
+            info(f"    i {Fore.CYAN}{outputstr}", mainpbar)
+        else:
+            # check for specific outputs
+            if 'Everything up-to-date' in outputstr:
+                info(f"    i {Fore.CYAN}everything up-to-date", mainpbar)
+            elif 'nothing to commit' in outputstr:
+                info(f"    i {Fore.CYAN}nothing to commit", mainpbar)
+            elif 'create mode' in outputstr or 'delete mode' in outputstr:
+                # show additions/deletions
+                outputl = outputstr.split('\n')
+                for line in outputl:
+                    info(f"    i {Fore.BLACK}{outputl}", mainpbar)
+            elif len(outputstr) < 200:  # show short messages
+                if flags.message in outputstr: # dont duplicate commit message
+                    pass
+                else:
+                    info(f"    i {Fore.BLACK}{outputstr}", mainpbar)
+
 def runcmd(args: List[str], flags: Namespace, mainpbar: Optional[tqdm] = None, showprogress: bool = True,) -> Optional[CompletedProcess]:
     '''executes a command with error handling'''
-    cwd = getcwd()
-    cmdstr = list2cmdline(args)
+    cwd: str = getcwd()
+    cmdstr: str = list2cmdline(args)
 
     if flags.dry:
         printcmd(cmdstr, mainpbar)
         return None
 
     try:
-        info(f"\n  running command from directory: {Style.BRIGHT}{cwd}:", mainpbar)
+        info("  running command:", mainpbar)
         printcmd(f"    $ {cmdstr}", mainpbar)
 
         # capture output to parse relevant messages
         cmdargs = args.copy()
-        result = None
+        result: Optional[CompletedProcess[bytes]] = None
 
         if not showprogress:
             result = runsubprocess(cmdargs, check=True, cwd=cwd, capture_output=True)
@@ -49,57 +74,37 @@ def runcmd(args: List[str], flags: Namespace, mainpbar: Optional[tqdm] = None, s
             if outputstr:
                 # check for specific outputs
                 if 'Everything up-to-date' in outputstr:
-                    info(f"    ℹ️ {Fore.CYAN}everything up to date!", mainpbar)
+                    info(f"    i {Fore.CYAN}everything up to date", mainpbar)
                 elif 'nothing to commit' in outputstr:
-                    info(f"    ℹ️ {Fore.CYAN}nothing to commit!", mainpbar)
+                    info(f"    i {Fore.CYAN}nothing to commit", mainpbar)
                 elif len(outputstr) < 200:  # short messages
-                    info(f"    ℹ️ {Fore.BLACK}{outputstr}", mainpbar)
+                    info(f"    i {Fore.BLACK}{outputstr}", mainpbar)
 
             success("  ✓ completed successfully", mainpbar)
             return result
 
         with tqdm(total=100, desc=f"{Fore.CYAN}mrrping...{Style.RESET_ALL}", bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}', position=1, leave=True) as pbar:
             pbar.update(10)
-            animation = startloading(f"executing {cmdargs[0]}...")
+            animation = startloadinganimation(f"executing {" ".join(cmdargs)}...")
 
             try:
                 result = runsubprocess(cmdargs, check=True, cwd=cwd, capture_output=True)
                 pbar.n = 50
                 pbar.refresh()
 
-                stoploading(animation)
+                stoploadinganimation(animation)
 
-                # parse output
-                outputstr = result.stdout.decode('utf-8', errors='replace').strip()
-                pbar.n = 80
-                pbar.refresh()
-                if outputstr:
-                    if flags.verbose:
-                        # output everything
-                        info(f"    ℹ️ {Fore.CYAN}{outputstr}", mainpbar)
-                    else:
-                        # check for specific outputs
-                        if 'Everything up-to-date' in outputstr:
-                            info(f"    ℹ️ {Fore.CYAN}everything up-to-date", mainpbar)
-                        elif 'nothing to commit' in outputstr:
-                            info(f"    ℹ️ {Fore.CYAN}nothing to commit", mainpbar)
-                        elif 'create mode' in outputstr or 'delete mode' in outputstr:
-                            # show additions/deletions
-                            info(f"    ℹ️ {Fore.BLACK}{outputstr}", mainpbar)
-                        elif len(outputstr) < 200:  # show short messages
-                            if flags.message in outputstr: # dont duplicate commit message
-                                pass
-                            else:
-                                info(f"    ℹ️ {Fore.BLACK}{outputstr}", mainpbar)
+                parseoutput(result, flags, pbar, mainpbar)
 
                 pbar.n = 100
                 pbar.colour = 'green'
                 pbar.refresh()
                 success("  ✓ completed successfully", mainpbar)
+
                 return result
 
             except CalledProcessError as e:
-                stoploading(animation)
+                stoploadinganimation(animation)
 
                 # change bar to red if command fails
                 pbar.desc = f"{Fore.RED} ❌ command failed{Style.RESET_ALL}"
@@ -110,8 +115,10 @@ def runcmd(args: List[str], flags: Namespace, mainpbar: Optional[tqdm] = None, s
     except CalledProcessError as e:
         error(f"\n❌ command failed with exit code {e.returncode}:", mainpbar)
         printcmd(f"  $ {cmdstr}", mainpbar)
+
         if e.stdout:
             info(f"{Fore.BLACK}{e.stdout.decode('utf-8', errors='replace')}", mainpbar)
+
         if e.stderr:
             error(f"{Fore.RED}{e.stderr.decode('utf-8', errors='replace')}", mainpbar)
 
@@ -120,6 +127,48 @@ def runcmd(args: List[str], flags: Namespace, mainpbar: Optional[tqdm] = None, s
         else:
             info(f"{Fore.CYAN}continuing...")
     return None
+
+def checkargv(args: List[str], parser: ArgumentParser):
+    if len(args) != 1:
+        # fancy header
+        print(f"{Fore.MAGENTA}{Style.BRIGHT}meow {Style.RESET_ALL}{Fore.CYAN}v{VERSION}{Style.RESET_ALL}")
+        print()
+        print(f"current directory: {Style.BRIGHT}{getcwd()}")
+
+    if len(args) == 1:
+        parser.print_help()
+        exit(1)
+    elif len(args) == 2:
+        if argv[1] == "meow":
+            print(f"{Fore.MAGENTA}{Style.BRIGHT}meow meow :3{Style.RESET_ALL}")
+            exit(0)
+
+def getsteps(args: Namespace) -> List[str]:
+    steps: List[str] = []
+
+    if args.status:
+        steps.append("status check")
+
+    if args.updatesubmodules:
+        steps.append("update submodules")
+
+    if args.stash:
+        steps.append("stash changes")
+
+    if args.pull or args.norebase:
+        steps.append("pull from remote")
+
+    steps.append("stage changes")
+
+    if args.diff:
+        steps.append("show diff")
+
+    steps.append("commit changes")
+
+    if not args.nopush:
+        steps.append("push to remote")
+
+    return steps
 
 def checkstatus(args: Namespace, progressbar: tqdm) -> bool:
     # status check
@@ -186,36 +235,9 @@ def push(push: Optional[List[str]], args: Namespace, progressbar: tqdm) -> bool:
         return True
     return False
 
-def getsteps(args: Namespace) -> List[str]:
-    steps: List[str] = []
-
-    if args.status:
-        steps.append("status check")
-
-    if args.updatesubmodules:
-        steps.append("update submodules")
-
-    if args.stash:
-        steps.append("stash changes")
-
-    if args.pull or args.norebase:
-        steps.append("pull from remote")
-
-    steps.append("stage changes")
-
-    if args.diff:
-        steps.append("show diff")
-
-    steps.append("commit changes")
-
-    if not args.nopush:
-        steps.append("push to remote")
-
-    return steps
-
 def main() -> None:
     # start animatior before initialization
-    animation = startloading("initializing...")
+    animation = startloadinganimation("initializing...")
 
     # init
     parser: ArgumentParser = ArgumentParser(
@@ -228,46 +250,24 @@ def main() -> None:
     args: Namespace = parser.parse_args()
 
     # stop the animation after initialization
-    stoploading(animation)
+    stoploadinganimation(animation)
 
-    # check args
-    if len(argv) != 1:
-        # fancy header
-        print(f"{Fore.MAGENTA}{Style.BRIGHT}meow {Style.RESET_ALL}{Fore.CYAN}v{VERSION}{Style.RESET_ALL}")
-
-    if len(argv) == 1:
-        parser.print_help()
-        exit(1)
-    elif len(argv) == 2:
-        if argv[1] == "meow":
-            print(f"{Fore.MAGENTA}{Style.BRIGHT}meow meow :3{Style.RESET_ALL}")
-            exit(0)
-        elif argv[1] == "--version" or argv[1] == "-v":
-            printinfo(VERSION)
+    checkargv(argv, parser)
 
     if args.dry:
         print(f"{Fore.MAGENTA}{Style.BRIGHT}dry run{Style.RESET_ALL}")
 
-    if len(argv) == 2:
-        if argv[1] == "meow":
-            print(f"{Fore.MAGENTA}{Style.BRIGHT}meow meow :3{Style.RESET_ALL}")
-            exit(1)
-
     if args.version:
-        printversion(VERSION)
+        printinfo(VERSION)
 
-    try:
-        validateargs(args)
-    except ValueError as e:
-        error(f"error: {str(e)}")
-        exit(1)
+    validateargs(args)
 
-    animation = startloading("preparing...")
+    animation = startloadinganimation("preparing...")
 
     # display pipeline steps
     steps = getsteps(args)
 
-    stoploading(animation)
+    stoploadinganimation(animation)
 
     # show pipeline overview
     print(f"\n{Fore.CYAN}{Style.BRIGHT}meows to meow:{Style.RESET_ALL}")

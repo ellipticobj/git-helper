@@ -2,26 +2,28 @@ from sys import exit
 from tqdm import tqdm
 from time import sleep
 from loggers import error
-from typing import List, Union
 from colorama import Fore, Style
+from typing import List, Optional
 from argparse import ArgumentParser, _ArgumentGroup, Namespace
 
 def completebar(pbar: tqdm, totalsteps: int) -> None:
+    '''fills up pbar and makes it green'''
     pbar.n = totalsteps
     pbar.colour = 'green'
     pbar.refresh()
 
-def progressbar(description: str, duration: float = 0.5) -> None:
-    '''progress bar'''
-    with tqdm(total=100, desc=f"{Fore.CYAN}{description}{Style.RESET_ALL}", bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}') as pbar:
+def progressbar(total: int, description: str, position: int, leave: bool, duration: float = 0.5) -> None:
+    '''default progress bar'''
+    with tqdm(total=total, desc=f"{Fore.CYAN}{description}{Style.RESET_ALL}", bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}', position=position, leave=leave) as pbar:
         for _ in range(100):
-            sleep(duration / 100)
+            sleep(duration / total)
             pbar.update(1)
 
 def validateargs(args: Namespace) -> None:
     '''validate argument combinations'''
     if not args.amend and not args.nomsg and not args.message:
-        raise ValueError("commit message required (use --amend, --no-message, or provide message)")
+        error("error: commit message required (use --amend, --no-message, or provide message)")
+        exit(1)
 
 def initcommands(parser: ArgumentParser) -> None:
     '''initialize commands with commands.'''
@@ -63,6 +65,7 @@ def initcommands(parser: ArgumentParser) -> None:
     advancedgrp.add_argument("--stash", action='store_true', help="stash changes before pull")
 
 def commithelper(args: Namespace) -> List[str]:
+    '''adds flags to the commit command'''
     commit: List[str] = ["git", "commit"]
 
     if args.message:
@@ -83,20 +86,8 @@ def commithelper(args: Namespace) -> List[str]:
 
     return commit
 
-def parseupstreamargs(args: Namespace, pushl: List[str]):
-    if len(args.upstream) == 1 and '/' in args.upstream[0]:
-        # use REMOTE/BRANCH format
-        remote, branch = args.upstream[0].split('/')
-        pushl.extend(["--set-upstream", remote, branch])
-    elif len(args.upstream) == 2:
-        # use REMOTE BRANCH format
-        pushl.extend(["--set-upstream", args.upstream[0], args.upstream[1]])
-    else:
-        error("invalid upstream format. Use 'REMOTE BRANCH' or 'REMOTE/BRANCH'")
-        exit(1)
-
-
-def pushhelper(args: Namespace) -> Union[None, List[str]]:
+def pushhelper(args: Namespace) -> Optional[List[str]]:
+    '''adds flags to the push command'''
     if not args.no_push:
         push: List[str] = ["git", "push"]
         if args.tags:
@@ -115,3 +106,18 @@ def pushhelper(args: Namespace) -> Union[None, List[str]]:
 
         return push
     return None
+
+def parseupstreamargs(args: Namespace, pushl: List[str]):
+    '''parses args for --set-upstream'''
+    if len(args.upstream) == 1 and '/' in args.upstream[0]:
+        # use REMOTE/BRANCH format
+        remote: str
+        branch: str
+        remote, branch = args.upstream[0].split('/')
+        pushl.extend(["--set-upstream", remote, branch])
+    elif len(args.upstream) == 2:
+        # use REMOTE BRANCH format
+        pushl.extend(["--set-upstream", args.upstream[0], args.upstream[1]])
+    else:
+        error("invalid upstream format. Use 'REMOTE BRANCH' or 'REMOTE/BRANCH'")
+        exit(1)
