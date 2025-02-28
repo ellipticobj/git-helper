@@ -50,7 +50,23 @@ def parseoutput(result: CompletedProcess, flags: Namespace, pbar: tqdm, mainpbar
                 else:
                     info(f"    i {Fore.BLACK}{outputstr}", mainpbar)
 
-def runcmd(args: List[str], flags: Namespace, mainpbar: Optional[tqdm] = None, showprogress: bool = True,) -> Optional[CompletedProcess]:
+def runcmdwithoutprogress(args: List[str], mainpbar: Optional[tqdm]) -> CompletedProcess[bytes]:
+    result = runsubprocess(args, check=True, cwd=getcwd(), capture_output=True)
+    # parse output
+    outputstr = result.stdout.decode('utf-8', errors='replace').strip()
+    if outputstr:
+        # check for specific outputs
+        if 'Everything up-to-date' in outputstr:
+            info(f"    i {Fore.CYAN}everything up to date", mainpbar)
+        elif 'nothing to commit' in outputstr:
+            info(f"    i {Fore.CYAN}nothing to commit", mainpbar)
+        elif len(outputstr) < 200:  # short messages
+            info(f"    i {Fore.BLACK}{outputstr}", mainpbar)
+
+    success("  ✓ completed successfully", mainpbar)
+    return result
+
+def runcmd(args: List[str], flags: Namespace, mainpbar: Optional[tqdm] = None, showprogress: bool = True, keepbar: bool = True) -> Optional[CompletedProcess]:
     '''executes a command with error handling'''
     cwd: str = getcwd()
     cmdstr: str = list2cmdline(args)
@@ -68,49 +84,27 @@ def runcmd(args: List[str], flags: Namespace, mainpbar: Optional[tqdm] = None, s
         result: Optional[CompletedProcess[bytes]] = None
 
         if not showprogress:
-            result = runsubprocess(cmdargs, check=True, cwd=cwd, capture_output=True)
-            # parse output
-            outputstr = result.stdout.decode('utf-8', errors='replace').strip()
-            if outputstr:
-                # check for specific outputs
-                if 'Everything up-to-date' in outputstr:
-                    info(f"    i {Fore.CYAN}everything up to date", mainpbar)
-                elif 'nothing to commit' in outputstr:
-                    info(f"    i {Fore.CYAN}nothing to commit", mainpbar)
-                elif len(outputstr) < 200:  # short messages
-                    info(f"    i {Fore.BLACK}{outputstr}", mainpbar)
-
-            success("  ✓ completed successfully", mainpbar)
+            result = runcmdwithoutprogress(cmdargs, mainpbar)
             return result
 
-        with tqdm(total=100, desc=f"{Fore.CYAN}mrrping...{Style.RESET_ALL}", bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}', position=1, leave=True) as pbar:
+        with tqdm(total=100, desc=f"{Fore.CYAN}mrrping...{Style.RESET_ALL}", bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}', position=1, leave=keepbar) as pbar:
             pbar.update(10)
             animation = startloadinganimation(f"executing {" ".join(cmdargs)}...")
 
-            try:
-                result = runsubprocess(cmdargs, check=True, cwd=cwd, capture_output=True)
-                pbar.n = 50
-                pbar.refresh()
+            result = runsubprocess(cmdargs, check=True, cwd=cwd, capture_output=True)
+            pbar.n = 50
+            pbar.refresh()
 
-                stoploadinganimation(animation)
+            stoploadinganimation(animation)
 
-                parseoutput(result, flags, pbar, mainpbar)
+            parseoutput(result, flags, pbar, mainpbar)
 
-                pbar.n = 100
-                pbar.colour = 'green'
-                pbar.refresh()
-                success("  ✓ completed successfully", mainpbar)
+            pbar.n = 100
+            pbar.colour = 'green'
+            pbar.refresh()
+            success("  ✓ completed successfully", mainpbar)
 
-                return result
-
-            except CalledProcessError as e:
-                stoploadinganimation(animation)
-
-                # change bar to red if command fails
-                pbar.desc = f"{Fore.RED} ❌ command failed{Style.RESET_ALL}"
-                pbar.colour = 'magenta'
-                pbar.refresh()
-                raise e  # raise exception
+            return result
 
     except CalledProcessError as e:
         error(f"\n❌ command failed with exit code {e.returncode}:", mainpbar)
@@ -126,7 +120,7 @@ def runcmd(args: List[str], flags: Namespace, mainpbar: Optional[tqdm] = None, s
             exit(e.returncode)
         else:
             info(f"{Fore.CYAN}continuing...")
-    return None
+        return None
 
 def checkargv(args: List[str], parser: ArgumentParser):
     if len(args) != 1:
