@@ -142,7 +142,16 @@ def pushhelper(args: Namespace) -> Union[None, List[str]]:
             push.append("--tags")
 
         if args.upstream:
-            push.extend(["--set-upstream", args.upstream[0], args.upstream[1]])
+            if len(args.upstream) == 1 and '/' in args.upstream[0]:
+                # use REMOTE/BRANCH format
+                remote, branch = args.upstream[0].split('/')
+                push.extend(["--set-upstream", remote, branch])
+            elif len(args.upstream) == 2:
+                # use REMOTE BRANCH format
+                push.extend(["--set-upstream", args.upstream[0], args.upstream[1]])
+            else:
+                error("invalid upstream format. Use 'REMOTE BRANCH' or 'REMOTE/BRANCH'")
+                sys.exit(1)
 
         if args.force:
             push.append("--force")
@@ -173,7 +182,7 @@ def runcmd(args: List[str], flags: Namespace, mainpbar: Optional[tqdm] = None, s
         result = None
         
         if showprogress:
-            with tqdm(total=100, desc=f"{Fore.CYAN}mrrping...{Style.RESET_ALL}", bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}', position=0, leave=False) as pbar:
+            with tqdm(total=100, desc=f"{Fore.CYAN}mrrping...{Style.RESET_ALL}", bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}', position=1, leave=True) as pbar:
                 # start progress bar
                 pbar.update(10)
                 
@@ -247,13 +256,19 @@ def main() -> None:
     )
     initcommands(parser)
 
-    # pre parse checks
+    # get args
+    args: Namespace = parser.parse_args()
+
+    # check args
     if len(sys.argv) == 1:
         parser.print_help()
         sys.exit(1)
-
-    # get args
-    args: Namespace = parser.parse_args()
+    elif len(sys.argv) == 2:
+        if sys.argv[1] == "meow":
+            print(f"{Fore.MAGENTA}{Style.BRIGHT}meow meow :3{Style.RESET_ALL}")
+            sys.exit(0)
+        elif sys.argv[1] == "--version" or sys.argv[1] == "-v":
+            printinfo()
 
     if args.dry:
         print(f"{Fore.MAGENTA}{Style.BRIGHT}dry run{Style.RESET_ALL}")
@@ -271,8 +286,8 @@ def main() -> None:
     try:
         validateargs(args)
     except ValueError as e:
-        error(f"Error: {str(e)}")
-        parser.error(str(e))
+        error(f"error: {str(e)}")
+        sys.exit(1)
 
     # display pipeline steps
     steps = []
@@ -298,7 +313,7 @@ def main() -> None:
     print()
 
     # execute pipeline
-    with tqdm(total=len(steps), desc=f"{Fore.MAGENTA}meowing...{Style.RESET_ALL}", bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}', position=1, leave=True) as progressbar:
+    with tqdm(total=len(steps), desc=f"{Fore.MAGENTA}meowing...{Style.RESET_ALL}", bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}', position=0, leave=True) as progressbar:
         completedsteps = 0
         totalsteps = len(steps)
         
