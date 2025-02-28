@@ -23,13 +23,13 @@ INSTALL_PATH="/usr/bin/"
 # ------------------------------------
 usage() {
     cat <<EOF
-Usage: $0 [OPTIONS]
+usage: $0 [OPTIONS]
 
-Options:
-    --local      Use the local executable from ./dist (build if missing)
-    --help       Show this help message and exit
+options:
+    --local      use the local executable from ./dist (build if missing)
+    --help       show this help message and exit
 
-This script either downloads the latest release from GitHub or installs a local build.
+this script either downloads the latest release from GitHub or installs a local build.
 EOF
     exit 0
 }
@@ -39,8 +39,8 @@ error_exit() {
     exit 1
 }
 
-install_dependencies() {
-    echo "Checking and installing required dependencies..."
+installdeps() {
+    echo "checking and installing required dependencies..."
     
     # Check if pip is installed
     if ! command -v pip3 &>/dev/null; then
@@ -49,7 +49,7 @@ install_dependencies() {
     fi
     
     # Install required packages
-    echo "Installing required packages: colorama, tqdm"
+    echo "installing required packages: colorama, tqdm"
     pip3 install colorama tqdm
     
     if [ $? -ne 0 ]; then
@@ -57,12 +57,12 @@ install_dependencies() {
         exit 1
     fi
     
-    echo "Dependencies installed successfully."
+    echo "dependencies installed successfully."
 }
 
 build() {
     # -----------------------
-    # env Checks
+    # env checks
     # -----------------------
     if [ ! -f "main.py" ]; then
         echo "error: main.py not found in the current directory." >&2
@@ -75,7 +75,7 @@ build() {
     fi
     
     # Install required dependencies
-    install_dependencies
+    installdeps
 
     # -----------------------
     # building
@@ -84,7 +84,7 @@ build() {
     BUILD_NAME="meow-${ARCH}"
 
     echo "building ${EXEC_NAME}..."
-    python -m PyInstaller --onefile main.py -n ${BUILD_NAME} --hidden-import=colorama --hidden-import=tqdm
+    python -m PyInstaller --onefile main.py -n ${BUILD_NAME} --hidden-import=colorama --hidden-import=tqdm --clean --additional-hooks-dir . --optimize 1
 
     OUTPUT_FILE="./dist/${BUILD_NAME}"
     if [ ! -f "$OUTPUT_FILE" ]; then

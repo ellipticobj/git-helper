@@ -188,12 +188,13 @@ def runcmd(args: List[str], flags: Namespace, mainpbar: Optional[tqdm] = None, s
                 
                 try:
                     result = subprocess.run(cmdargs, check=True, cwd=cwd, capture_output=True)
-                    # complete bar immediately
-                    pbar.n = 100
+                    pbar.n = 50
                     pbar.refresh()
                     
                     # parse output
                     outputstr = result.stdout.decode('utf-8', errors='replace').strip()
+                    pbar.n = 80
+                    pbar.refresh()
                     if outputstr:
                         # check for specific outputs
                         if 'Everything up-to-date' in outputstr:
@@ -208,13 +209,16 @@ def runcmd(args: List[str], flags: Namespace, mainpbar: Optional[tqdm] = None, s
                                 pass
                             else:
                                 info(f"    ℹ️ {Fore.BLACK}{outputstr}", mainpbar)
+                    pbar.n = 100
+                    pbar.colour = 'green'
+                    pbar.refresh()
                     
                     success("  ✓ completed successfully", mainpbar)
                     return result
                 except subprocess.CalledProcessError as e:
                     # change bar to red if command fails
                     pbar.desc = f"{Fore.RED} ❌ command failed{Style.RESET_ALL}"
-                    pbar.n = 100  # still complete the bar
+                    pbar.colour = 'magenta'
                     pbar.refresh()
                     raise e  # raise exception
         else:
@@ -384,8 +388,6 @@ def main() -> None:
         if completedsteps < totalsteps:
             progressbar.n = totalsteps
             progressbar.refresh()
-        
-        progressbar.disable()
     
     # success message
     print("\n😺")
@@ -396,3 +398,5 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print(f"\n\n{Fore.YELLOW}{Style.BRIGHT}operation cancelled by user{Style.RESET_ALL}")
         sys.exit(1)
+    except Exception as e:
+        print(f"\n\n{Fore.MAGENTA}{Style.BRIGHT}error: {Style.RESET_ALL}{Fore.RED}{e}{Style.RESET_ALL}")
