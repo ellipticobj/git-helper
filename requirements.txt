@@ -1,0 +1,5 @@
+colorama
+tqdm
+cython
+setuptools
+argparse
