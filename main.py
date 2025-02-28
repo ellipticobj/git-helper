@@ -10,7 +10,7 @@ from tqdm import tqdm # type: ignore
 # initialize colorama
 init(autoreset=True)
 
-VERSION = "0.2.1-preview"
+VERSION = "0.2.3-preview"
 
 def success(message: str, pbar: Optional[tqdm] = None) -> None:
     '''print success message'''
@@ -64,7 +64,7 @@ def runcmd(args: List[str], cont: bool, dry: bool = False, mainpbar: Optional[tq
         return None
 
     try:
-        info(f"running command from directory: {Style.BRIGHT}{cwd}:", mainpbar)
+        info(f"\nrunning command from directory: {Style.BRIGHT}{cwd}:", mainpbar)
         printcmd(f"  $ {cmdstr}", mainpbar)
         
         if showprogress:
@@ -205,7 +205,7 @@ def main() -> None:
     # init 
     parser: ArgumentParser = ArgumentParser(
         prog=f"{Fore.MAGENTA}{Style.BRIGHT}meow{Style.RESET_ALL}",
-        description=f"{Fore.CYAN}my personal git wrapper{Style.RESET_ALL}"
+        description=f"{Fore.CYAN}git wrapper{Style.RESET_ALL}"
     )
     initcommands(parser)
 
@@ -254,13 +254,13 @@ def main() -> None:
     print(f"\n{Fore.CYAN}{Style.BRIGHT}meows to meow:{Style.RESET_ALL}")
     for i, step in enumerate(steps, 1):
         print(f"  {Fore.BLUE}{i}.{Style.RESET_ALL} {Fore.WHITE}{step}{Style.RESET_ALL}")
-    print() 
+    print()
 
     # execute pipeline
     with tqdm(total=len(steps), desc=f"{Fore.MAGENTA}meowing...{Style.RESET_ALL}", bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}', position=1, leave=True) as progressbar:
         # status check
         if args.status:
-            info(f"\n{Style.BRIGHT}status check{Style.RESET_ALL}", progressbar)
+            info(f"{Style.BRIGHT}status check{Style.RESET_ALL}", progressbar)
             runcmd(["git", "status"], args.cont, args.dry, mainpbar=progressbar, showprogress=False)
             progressbar.update(1)
 
