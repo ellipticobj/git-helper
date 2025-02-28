@@ -182,7 +182,7 @@ def runcmd(args: List[str], flags: Namespace, mainpbar: Optional[tqdm] = None, s
         result = None
         
         if showprogress:
-            with tqdm(total=100, desc=f"{Fore.CYAN}mrrping...{Style.RESET_ALL}", bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}', position=1, leave=True) as pbar:
+            with tqdm(total=100, desc=f"{Fore.CYAN}mrrping...{Style.RESET_ALL}", bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}', position=0, leave=True) as pbar:
                 # start progress bar
                 pbar.update(10)
                 
@@ -213,7 +213,8 @@ def runcmd(args: List[str], flags: Namespace, mainpbar: Optional[tqdm] = None, s
                     return result
                 except subprocess.CalledProcessError as e:
                     # change bar to red if command fails
-                    pbar.desc = f"{Fore.RED}  command failed{Style.RESET_ALL}"
+                    pbar.desc = f"{Fore.RED} ❌ command failed{Style.RESET_ALL}"
+                    pbar.colour = 'red'
                     pbar.n = 100  # still complete the bar
                     pbar.refresh()
                     raise e  # raise exception
@@ -239,10 +240,14 @@ def runcmd(args: List[str], flags: Namespace, mainpbar: Optional[tqdm] = None, s
         if e.stdout:
             info(f"{Fore.BLACK}{e.stdout.decode('utf-8', errors='replace')}", mainpbar)
         if e.stderr:
+            if mainpbar:
+                mainpbar.colour = 'red'
             error(f"{Fore.RED}{e.stderr.decode('utf-8', errors='replace')}", mainpbar)
         
         if not flags.cont:
             sys.exit(e.returncode)
+        else:
+            info(f"{Fore.CYAN}Continuing...")
     return None
 
 def main() -> None:
@@ -313,7 +318,7 @@ def main() -> None:
     print()
 
     # execute pipeline
-    with tqdm(total=len(steps), desc=f"{Fore.MAGENTA}meowing...{Style.RESET_ALL}", bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}', position=0, leave=True) as progressbar:
+    with tqdm(total=len(steps), desc=f"{Fore.MAGENTA}meowing...{Style.RESET_ALL}", bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}', position=1, leave=True) as progressbar:
         completedsteps = 0
         totalsteps = len(steps)
         
