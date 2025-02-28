@@ -54,7 +54,7 @@ def progressbar(description: str, duration: float = 0.5) -> None:
             time.sleep(duration / 100)
             pbar.update(1)
 
-def runcmd(args: List[str], cont: bool, dry: bool = False, mainpbar: Optional[tqdm] = None, showprogress: bool = True,) -> Optional[subprocess.CompletedProcess]:
+def runcmd(args: List[str], cont: bool, dry: bool = False, mainpbar: Optional[tqdm] = None, bar: Optional[tqdm] = None, showprogress: bool = True,) -> Optional[subprocess.CompletedProcess]:
     '''executes a command with error handling'''
     cwd = os.getcwd()
     cmdstr = subprocess.list2cmdline(args)
@@ -78,44 +78,44 @@ def runcmd(args: List[str], cont: bool, dry: bool = False, mainpbar: Optional[tq
                 
                 try:
                     result = subprocess.run(cmd_args, check=True, cwd=cwd, capture_output=True)
-                    # Complete progress bar immediately
+                    # complete bar immediately
                     pbar.n = 100
                     pbar.refresh()
                     
-                    # Parse output to display relevant git information
-                    output_str = result.stdout.decode('utf-8', errors='replace').strip()
-                    if output_str:
-                        # Check for specific git command outputs
-                        if 'Everything up-to-date' in output_str:
+                    # parse output
+                    outputstr = result.stdout.decode('utf-8', errors='replace').strip()
+                    if outputstr:
+                        # check for specific outputs
+                        if 'Everything up-to-date' in outputstr:
                             info(f"  ℹ️ {Fore.CYAN}Everything already up-to-date", mainpbar)
-                        elif 'nothing to commit' in output_str:
+                        elif 'nothing to commit' in outputstr:
                             info(f"  ℹ️ {Fore.CYAN}Nothing to commit, working tree clean", mainpbar)
-                        elif 'create mode' in output_str or 'delete mode' in output_str:
-                            # For git add/commit that shows file additions/deletions
-                            info(f"  ℹ️ {Fore.WHITE}{output_str}", mainpbar)
-                        elif len(output_str) < 200:  # Only show short messages directly
-                            info(f"  ℹ️ {Fore.WHITE}{output_str}", mainpbar)
+                        elif 'create mode' in outputstr or 'delete mode' in outputstr:
+                            # show additions/deletions
+                            info(f"  ℹ️ {Fore.WHITE}{outputstr}", mainpbar)
+                        elif len(outputstr) < 200:  # show short messages
+                            info(f"  ℹ️ {Fore.WHITE}{outputstr}", mainpbar)
                     
                     success("  ✓ completed successfully", mainpbar)
                     return result
                 except subprocess.CalledProcessError as e:
                     # change bar to red if command fails
                     pbar.desc = f"{Fore.RED}command failed{Style.RESET_ALL}"
-                    pbar.n = 100  # Still complete the progress bar
+                    pbar.n = 100  # still complete the bar
                     pbar.refresh()
                     raise e  # raise exception
         else:
             result = subprocess.run(cmd_args, check=True, cwd=cwd, capture_output=True)
-            # Parse output to display relevant git information
-            output_str = result.stdout.decode('utf-8', errors='replace').strip()
-            if output_str:
-                # Check for specific git command outputs
-                if 'Everything up-to-date' in output_str:
+            # parse output
+            outputstr = result.stdout.decode('utf-8', errors='replace').strip()
+            if outputstr:
+                # check for specific outputs
+                if 'Everything up-to-date' in outputstr:
                     info(f"  ℹ️ {Fore.CYAN}Everything already up-to-date", mainpbar)
-                elif 'nothing to commit' in output_str:
+                elif 'nothing to commit' in outputstr:
                     info(f"  ℹ️ {Fore.CYAN}Nothing to commit, working tree clean", mainpbar)
-                elif len(output_str) < 200:  # Only show short messages directly
-                    info(f"  ℹ️ {Fore.WHITE}{output_str}", mainpbar)
+                elif len(outputstr) < 200:  # short messages
+                    info(f"  ℹ️ {Fore.WHITE}{outputstr}", mainpbar)
             
             success("  ✓ completed successfully", mainpbar)
             return result
