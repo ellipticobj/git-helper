@@ -384,6 +384,8 @@ def main() -> None:
         if completedsteps < totalsteps:
             progressbar.n = totalsteps
             progressbar.refresh()
+        
+        progressbar.clear()
     
     # success message
     print("\n😺")
