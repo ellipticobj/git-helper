@@ -10,7 +10,7 @@ from tqdm import tqdm # type: ignore
 # initialize colorama
 init(autoreset=True)
 
-VERSION = "0.2.3-preview"
+VERSION = "0.2.3-preview1"
 
 def success(message: str, pbar: Optional[tqdm] = None) -> None:
     '''print success message'''
