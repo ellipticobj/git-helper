@@ -214,7 +214,6 @@ def runcmd(args: List[str], flags: Namespace, mainpbar: Optional[tqdm] = None, s
                 except subprocess.CalledProcessError as e:
                     # change bar to red if command fails
                     pbar.desc = f"{Fore.RED} ❌ command failed{Style.RESET_ALL}"
-                    pbar.colour = 'red'
                     pbar.n = 100  # still complete the bar
                     pbar.refresh()
                     raise e  # raise exception
@@ -240,8 +239,6 @@ def runcmd(args: List[str], flags: Namespace, mainpbar: Optional[tqdm] = None, s
         if e.stdout:
             info(f"{Fore.BLACK}{e.stdout.decode('utf-8', errors='replace')}", mainpbar)
         if e.stderr:
-            if mainpbar:
-                mainpbar.colour = 'red'
             error(f"{Fore.RED}{e.stderr.decode('utf-8', errors='replace')}", mainpbar)
         
         if not flags.cont:
