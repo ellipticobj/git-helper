@@ -12,7 +12,7 @@ from subprocess import list2cmdline, run as runsubprocess, CompletedProcess, Cal
 # initialize colorama
 init(autoreset=True)
 
-VERSION = "0.2.3-preview2d"
+VERSION = "0.2.4"
 
 def pullhandler(args: Namespace) -> None:
     '''handles git pull operations'''
@@ -66,7 +66,7 @@ def runcmdwithoutprogress(args: List[str], mainpbar: Optional[tqdm]) -> Complete
     success("  ✓ completed successfully", mainpbar)
     return result
 
-def runcmd(args: List[str], flags: Namespace, mainpbar: Optional[tqdm] = None, showprogress: bool = True, keepbar: bool = True) -> Optional[CompletedProcess]:
+def runcmd(args: List[str], flags: Namespace, mainpbar: Optional[tqdm] = None, showprogress: bool = True, keepbar: bool = False) -> Optional[CompletedProcess]:
     '''executes a command with error handling'''
     cwd: str = getcwd()
     cmdstr: str = list2cmdline(args)
@@ -126,16 +126,19 @@ def checkargv(args: List[str], parser: ArgumentParser):
     if len(args) != 1:
         # fancy header
         print(f"{Fore.MAGENTA}{Style.BRIGHT}meow {Style.RESET_ALL}{Fore.CYAN}v{VERSION}{Style.RESET_ALL}")
-        print()
-        print(f"current directory: {Style.BRIGHT}{getcwd()}")
 
     if len(args) == 1:
         parser.print_help()
+        print()
+        print(f"current directory: {Style.BRIGHT}{getcwd()}")
         exit(1)
     elif len(args) == 2:
         if argv[1] == "meow":
             print(f"{Fore.MAGENTA}{Style.BRIGHT}meow meow :3{Style.RESET_ALL}")
             exit(0)
+        else:
+            print()
+            print(f"current directory: {Style.BRIGHT}{getcwd()}")
 
 def getsteps(args: Namespace) -> List[str]:
     steps: List[str] = []

@@ -1,7 +1,8 @@
 #!/bin/bash
+set -euo pipefail
 
+rm -rf temp dist
 mkdir -p temp
-rm -rf temp/*
 
 pip install -U -r requirements.txt
 
@@ -11,6 +12,13 @@ python -m PyInstaller \
     --onefile main.py \
     -n meow \
     --distpath=./dist \
+    --workpath=temp/build_pyinstaller \
+    --specpath=temp \
+    --clean \
+    --upx-dir=/usr/bin \
+    --exclude-module tkinter \
+    --exclude-module unittest \
+    --exclude-module pytest \
     --hidden-import=colorama \
     --hidden-import=tqdm \
     --hidden-import=helpers \
@@ -19,14 +27,13 @@ python -m PyInstaller \
     --add-binary "helpers*.so:." \
     --add-binary "loaders*.so:." \
     --add-binary "loggers*.so:." \
-    --clean \
-    --additional-hooks-dir . \
-    --optimize 1
+    --optimize 2
 
-rm -rf temp/*
+strip --strip-all dist/meow
 
-echo ""
-echo "move to /usr/bin (ENTER) or exit (anything else)?"
+echo -e "\nexecutable size: \n$(du -sh dist/meow)"
+
+echo -e "\nmove to /usr/bin (ENTER) or exit (anything else)?"
 read -r CONTINUE < /dev/tty
 if [ -n "$CONTINUE" ]; then
     echo "build at dist/meow"
