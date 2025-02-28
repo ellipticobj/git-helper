@@ -310,7 +310,7 @@ def main() -> None:
     
     # show pipeline overview
     print(f"\n{Fore.CYAN}{Style.BRIGHT}meows to meow:{Style.RESET_ALL}")
-    for i, step in enumerate(steps, 1):
+    for i, step in enumerate(steps, 1): 
         print(f"  {Fore.BLUE}{i}.{Style.RESET_ALL} {Fore.BLACK}{step}{Style.RESET_ALL}")
     print()
 
