@@ -1,22 +1,24 @@
 from os import getcwd
 from tqdm import tqdm
 from sys import exit, argv
-from typing import List, Optional
 from colorama import Fore, Style, init
-from loaders import startloadinganimation, stoploadinganimation
+from typing import List, Optional, TypeAlias, Final
 from argparse import ArgumentParser, Namespace
-from helpers import completebar, initcommands, validateargs, commithelper, pushhelper
-from loggers import success, error, info, printcmd, printinfo, printsteps
+from loaders import startloadinganimation, stoploadinganimation, ThreadEventTuple
+from helpers import completebar, initcommands, validateargs, commithelper, pushhelper, CommandList
+from loggers import success, error, info, printcmd, printinfo, printsteps, ProgressBarType
 from subprocess import list2cmdline, run as runsubprocess, CompletedProcess, CalledProcessError
 
 # initialize colorama
 init(autoreset=True)
 
-VERSION = "0.2.4"
+VERSION: Final[str] = "0.2.4"
+ArgParser: TypeAlias = ArgumentParser
+StepsList: TypeAlias = List[str]
 
 def pullhandler(args: Namespace) -> None:
     '''handles git pull operations'''
-    pull: List[str] = ["git", "pull"]
+    pull: CommandList = ["git", "pull"]
     if args.norebase:
         pull.append("--no-rebase")
     if args.pull or args.norebase:
@@ -25,8 +27,8 @@ def pullhandler(args: Namespace) -> None:
         else:
             runcmd(pull, args, args.cont, args.dry)
 
-def parseoutput(result: CompletedProcess, flags: Namespace, pbar: tqdm, mainpbar: Optional[tqdm]):
-    outputstr = result.stdout.decode('utf-8', errors='replace').strip()
+def parseoutput(result: CompletedProcess[bytes], flags: Namespace, pbar: ProgressBarType, mainpbar: Optional[ProgressBarType]) -> None:
+    outputstr: str = result.stdout.decode('utf-8', errors='replace').strip()
     pbar.n = 80
     pbar.refresh()
     if outputstr:
@@ -41,7 +43,7 @@ def parseoutput(result: CompletedProcess, flags: Namespace, pbar: tqdm, mainpbar
                 info(f"    i {Fore.CYAN}nothing to commit", mainpbar)
             elif 'create mode' in outputstr or 'delete mode' in outputstr:
                 # show additions/deletions
-                outputl = outputstr.split('\n')
+                outputl: List[str] = outputstr.split('\n')
                 for line in outputl:
                     info(f"    i {Fore.BLACK}{outputl}", mainpbar)
             elif len(outputstr) < 200:  # show short messages
@@ -50,10 +52,10 @@ def parseoutput(result: CompletedProcess, flags: Namespace, pbar: tqdm, mainpbar
                 else:
                     info(f"    i {Fore.BLACK}{outputstr}", mainpbar)
 
-def runcmdwithoutprogress(args: List[str], mainpbar: Optional[tqdm]) -> CompletedProcess[bytes]:
-    result = runsubprocess(args, check=True, cwd=getcwd(), capture_output=True)
+def runcmdwithoutprogress(args: CommandList, mainpbar: Optional[ProgressBarType]) -> CompletedProcess[bytes]:
+    result: CompletedProcess[bytes] = runsubprocess(args, check=True, cwd=getcwd(), capture_output=True)
     # parse output
-    outputstr = result.stdout.decode('utf-8', errors='replace').strip()
+    outputstr: str = result.stdout.decode('utf-8', errors='replace').strip()
     if outputstr:
         # check for specific outputs
         if 'Everything up-to-date' in outputstr:
@@ -66,7 +68,7 @@ def runcmdwithoutprogress(args: List[str], mainpbar: Optional[tqdm]) -> Complete
     success("  ✓ completed successfully", mainpbar)
     return result
 
-def runcmd(args: List[str], flags: Namespace, mainpbar: Optional[tqdm] = None, showprogress: bool = True, keepbar: bool = False) -> Optional[CompletedProcess]:
+def runcmd(args: CommandList, flags: Namespace, mainpbar: Optional[ProgressBarType] = None, showprogress: bool = True, keepbar: bool = False) -> Optional[CompletedProcess[bytes]]:
     '''executes a command with error handling'''
     cwd: str = getcwd()
     cmdstr: str = list2cmdline(args)
@@ -80,7 +82,7 @@ def runcmd(args: List[str], flags: Namespace, mainpbar: Optional[tqdm] = None, s
         printcmd(f"    $ {cmdstr}", mainpbar)
 
         # capture output to parse relevant messages
-        cmdargs = args.copy()
+        cmdargs: CommandList = args.copy()
         result: Optional[CompletedProcess[bytes]] = None
 
         if not showprogress:
@@ -89,7 +91,7 @@ def runcmd(args: List[str], flags: Namespace, mainpbar: Optional[tqdm] = None, s
 
         with tqdm(total=100, desc=f"{Fore.CYAN}mrrping...{Style.RESET_ALL}", bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}', position=1, leave=keepbar) as pbar:
             pbar.update(10)
-            animation = startloadinganimation(f"executing {" ".join(cmdargs)}...")
+            animation: ThreadEventTuple = startloadinganimation(f"executing {" ".join(cmdargs)}...")
 
             result = runsubprocess(cmdargs, check=True, cwd=cwd, capture_output=True)
             pbar.n = 50
@@ -122,26 +124,24 @@ def runcmd(args: List[str], flags: Namespace, mainpbar: Optional[tqdm] = None, s
             info(f"{Fore.CYAN}continuing...")
         return None
 
-def checkargv(args: List[str], parser: ArgumentParser):
+def checkargv(args: List[str], parser: ArgParser) -> None:
     if len(args) != 1:
         # fancy header
         print(f"{Fore.MAGENTA}{Style.BRIGHT}meow {Style.RESET_ALL}{Fore.CYAN}v{VERSION}{Style.RESET_ALL}")
 
     if len(args) == 1:
         parser.print_help()
-        print()
-        print(f"current directory: {Style.BRIGHT}{getcwd()}")
+        print(f"\ncurrent directory: {Style.BRIGHT}{getcwd()}")
         exit(1)
     elif len(args) == 2:
-        if argv[1] == "meow":
+        if args[1] == "meow":
             print(f"{Fore.MAGENTA}{Style.BRIGHT}meow meow :3{Style.RESET_ALL}")
             exit(0)
         else:
-            print()
-            print(f"current directory: {Style.BRIGHT}{getcwd()}")
+            print(f"\ncurrent directory: {Style.BRIGHT}{getcwd()}")
 
-def getsteps(args: Namespace) -> List[str]:
-    steps: List[str] = []
+def getsteps(args: Namespace) -> StepsList:
+    steps: StepsList = []
 
     if args.status:
         steps.append("status check")
@@ -167,7 +167,7 @@ def getsteps(args: Namespace) -> List[str]:
 
     return steps
 
-def checkstatus(args: Namespace, progressbar: tqdm) -> bool:
+def checkstatus(args: Namespace, progressbar: ProgressBarType) -> bool:
     # status check
     if args.status:
         info(f"{Style.BRIGHT}status check{Style.RESET_ALL}", progressbar)
@@ -176,7 +176,7 @@ def checkstatus(args: Namespace, progressbar: tqdm) -> bool:
         return True
     return False
 
-def updatesubmodules(args: Namespace, progressbar: tqdm) -> bool:
+def updatesubmodules(args: Namespace, progressbar: ProgressBarType) -> bool:
     if args.updatesubmodules:
         info(f"\n{Style.BRIGHT}updating submodules{Style.RESET_ALL}", progressbar)
         runcmd(["git", "submodule", "update", "--init", "--recursive"], args, mainpbar=progressbar)
@@ -184,7 +184,7 @@ def updatesubmodules(args: Namespace, progressbar: tqdm) -> bool:
         return True
     return False
 
-def stashchanges(args: Namespace, progressbar: tqdm) -> bool:
+def stashchanges(args: Namespace, progressbar: ProgressBarType) -> bool:
     if args.stash:
         info(f"\n{Style.BRIGHT}stashing changes{Style.RESET_ALL}", progressbar)
         runcmd(["git", "stash"], args, mainpbar=progressbar)
@@ -192,7 +192,7 @@ def stashchanges(args: Namespace, progressbar: tqdm) -> bool:
         return True
     return False
 
-def pull(args: Namespace, progressbar: tqdm) -> bool:
+def pull(args: Namespace, progressbar: ProgressBarType) -> bool:
     if args.pull or args.norebase:
         info(f"\n{Style.BRIGHT}pulling from remote{Style.RESET_ALL}",progressbar)
         # create a copy of args with the progress bar added
@@ -202,15 +202,15 @@ def pull(args: Namespace, progressbar: tqdm) -> bool:
         return True
     return False
 
-def stage(args: Namespace, progressbar: tqdm) -> None:
+def stage(args: Namespace, progressbar: ProgressBarType) -> None:
     info(f"\n{Style.BRIGHT}staging changes{Style.RESET_ALL}", progressbar)
-    addcmd: List[str] = ["git", "add", *args.add] if args.add else ["git", "add", "."]
+    addcmd: CommandList = ["git", "add", *args.add] if args.add else ["git", "add", "."]
     if args.verbose and not args.quiet:
         addcmd.append("--verbose")
     runcmd(addcmd, args, mainpbar=progressbar)
     progressbar.update(1)
 
-def diff(args: Namespace, progressbar: tqdm) -> bool:
+def diff(args: Namespace, progressbar: ProgressBarType) -> bool:
     if args.diff:
         info(f"\n{Style.BRIGHT}showing diff{Style.RESET_ALL}", progressbar)
         runcmd(["git", "diff", "--staged"], args, showprogress=False, mainpbar=progressbar)
@@ -218,26 +218,26 @@ def diff(args: Namespace, progressbar: tqdm) -> bool:
         return True
     return False
 
-def commit(args: Namespace, progressbar: tqdm) -> None:
+def commit(args: Namespace, progressbar: ProgressBarType) -> None:
     info(f"\n{Style.BRIGHT}committing{Style.RESET_ALL}", progressbar)
-    commit = commithelper(args)
-    runcmd(commit, args, mainpbar=progressbar)
+    commitcmd: CommandList = commithelper(args)
+    runcmd(commitcmd, args, mainpbar=progressbar)
     progressbar.update(1)
 
-def push(push: Optional[List[str]], args: Namespace, progressbar: tqdm) -> bool:
-    if push:
+def push(pushcmd: Optional[CommandList], args: Namespace, progressbar: ProgressBarType) -> bool:
+    if pushcmd:
         info(f"\n{Style.BRIGHT}pushing to remote{Style.RESET_ALL}", progressbar)
-        runcmd(push, args, mainpbar=progressbar)
+        runcmd(pushcmd, args, mainpbar=progressbar)
         progressbar.update(1)
         return True
     return False
 
 def main() -> None:
     # start animatior before initialization
-    animation = startloadinganimation("initializing...")
+    animation: ThreadEventTuple = startloadinganimation("initializing...")
 
     # init
-    parser: ArgumentParser = ArgumentParser(
+    parser: ArgParser = ArgumentParser(
         prog="meow",
         epilog=f"{Fore.MAGENTA}{Style.BRIGHT}meow {Style.RESET_ALL}{Fore.CYAN}v{VERSION}{Style.RESET_ALL}"
     )
@@ -262,7 +262,7 @@ def main() -> None:
     animation = startloadinganimation("preparing...")
 
     # display pipeline steps
-    steps = getsteps(args)
+    steps: StepsList = getsteps(args)
 
     stoploadinganimation(animation)
 
@@ -273,8 +273,8 @@ def main() -> None:
 
     # execute pipeline
     with tqdm(total=len(steps), desc=f"{Fore.MAGENTA}meowing...{Style.RESET_ALL}", bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}', position=0, leave=True) as progressbar:
-        completedsteps = 0
-        totalsteps = len(steps)
+        completedsteps: int = 0
+        totalsteps: int = len(steps)
 
         # statuscheck
         if checkstatus(args, progressbar):
@@ -305,7 +305,7 @@ def main() -> None:
         completedsteps += 1
 
         # push
-        pushl: Optional[List[str]] = pushhelper(args)
+        pushl: Optional[CommandList] = pushhelper(args)
         if push(pushl, args, progressbar):
             completedsteps += 1
 

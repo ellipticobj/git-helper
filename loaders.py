@@ -1,5 +1,6 @@
 from sys import stdout
 from time import sleep, time
+from typing import List, Tuple, TypeAlias
 from colorama import Fore, Style
 from threading import Event, Thread
 
@@ -7,26 +8,29 @@ from threading import Event, Thread
 loading animations
 '''
 
+ThreadEventTuple: TypeAlias = Tuple[Thread, Event]
+FrameType: TypeAlias = List[str]
+
 def loadingthread(message: str, stopevent: Event) -> None:
     '''animated loading icon function to run in a thread'''
-    frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
-    i = 0
-    message = f"{Fore.CYAN}{message}{Style.RESET_ALL}"
+    frames: FrameType = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
+    frame: int = 0
+    formatted_message: str = f"{Fore.CYAN}{message}{Style.RESET_ALL}"
     
     while not stopevent.is_set():
-        stdout.write(f'\r{frames[i]} {message}')
+        stdout.write(f'\r{frames[frame]} {formatted_message}')
         stdout.flush()
         sleep(0.1)
-        i = (i + 1) % len(frames)
+        frame = (frame + 1) % len(frames)
     
     # clear the line
-    stdout.write(f'\r {len(message)*2}\r')
+    stdout.write(f'\r {len(formatted_message)*2}\r')
     stdout.flush()
 
-def startloadinganimation(message: str) -> tuple[Thread, Event]:
+def startloadinganimation(message: str) -> ThreadEventTuple:
     '''start loading animation in a thread'''
-    stop = Event()
-    anithread = Thread(
+    stop: Event = Event()
+    anithread: Thread = Thread(
         target=loadingthread,
         args=(message, stop),
         daemon=True
@@ -34,25 +38,30 @@ def startloadinganimation(message: str) -> tuple[Thread, Event]:
     anithread.start()
     return anithread, stop
 
-def stoploadinganimation(threadinfo: tuple[Thread, Event]) -> None:
+def stoploadinganimation(threadinfo: ThreadEventTuple) -> None:
     '''stop threaded loading animation'''
+    thread: Thread
+    event: Event
     thread, event = threadinfo
+
     event.set()
     thread.join(timeout=0.2)  # wait for the thread to finish!!!!
+    stdout.write('\r\x1b[2K\r') # use ansi codes to write the entire line to prevent artifacts
+    stdout.flush()
 
 def unthreadedloadinganimation(message: str, duration: float = 2.0) -> None:
     '''unthreaded loading animation'''
-    frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
-    i = 0
-    message = f"{Fore.CYAN}{message}{Style.RESET_ALL}"
-    endtime = time() + duration
+    frames: FrameType = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
+    frame: int = 0
+    formatted_message: str = f"{Fore.CYAN}{message}{Style.RESET_ALL}"
+    endtime: float = time() + duration
     
     while time() < endtime:
-        stdout.write(f'\r{frames[i]} {message}')
+        stdout.write(f'\r{frames[frame]} {formatted_message}')
         stdout.flush()
         sleep(0.1)
-        i = (i + 1) % len(frames)
+        frame = (frame + 1) % len(frames)
     
     # clear the line
-    stdout.write(f'\r {len(message)*2}\r')
+    stdout.write(f'\r {len(formatted_message)*2}\r')
     stdout.flush()

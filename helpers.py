@@ -3,10 +3,14 @@ from tqdm import tqdm
 from time import sleep
 from loggers import error
 from colorama import Fore, Style
-from typing import List, Optional
+from typing import List, Optional, TypeAlias
 from argparse import ArgumentParser, _ArgumentGroup, Namespace
 
-def completebar(pbar: tqdm, totalsteps: int) -> None:
+TqdmType: TypeAlias = tqdm
+ArgParser: TypeAlias = ArgumentParser
+CommandList: TypeAlias = List[str]
+
+def completebar(pbar: TqdmType, totalsteps: int) -> None:
     '''fills up pbar and makes it green'''
     pbar.n = totalsteps
     pbar.colour = 'green'
@@ -25,7 +29,7 @@ def validateargs(args: Namespace) -> None:
         error("error: commit message required (use --amend, --no-message, or provide message)")
         exit(1)
 
-def initcommands(parser: ArgumentParser) -> None:
+def initcommands(parser: ArgParser) -> None:
     '''initialize commands with commands.'''
     # core functionality
     parser.add_argument("message", nargs='?', help="commit message (overrides --no-message)")
@@ -64,9 +68,9 @@ def initcommands(parser: ArgumentParser) -> None:
     advancedgrp.add_argument("--update-submodules", dest="updatesubmodules", action='store_true', help="update submodules recursively")
     advancedgrp.add_argument("--stash", action='store_true', help="stash changes before pull")
 
-def commithelper(args: Namespace) -> List[str]:
+def commithelper(args: Namespace) -> CommandList:
     '''adds flags to the commit command'''
-    commit: List[str] = ["git", "commit"]
+    commit: CommandList = ["git", "commit"]
 
     if args.message:
         commit.extend(["-m", args.message])
@@ -86,10 +90,10 @@ def commithelper(args: Namespace) -> List[str]:
 
     return commit
 
-def pushhelper(args: Namespace) -> Optional[List[str]]:
+def pushhelper(args: Namespace) -> Optional[CommandList]:
     '''adds flags to the push command'''
     if not args.nopush:
-        push: List[str] = ["git", "push"]
+        push: CommandList = ["git", "push"]
         if args.tags:
             push.append("--tags")
 
@@ -107,7 +111,7 @@ def pushhelper(args: Namespace) -> Optional[List[str]]:
         return push
     return None
 
-def parseupstreamargs(args: Namespace, pushl: List[str]):
+def parseupstreamargs(args: Namespace, pushl: CommandList) -> None:
     '''parses args for --set-upstream'''
     if len(args.upstream) == 1 and '/' in args.upstream[0]:
         # use REMOTE/BRANCH format
