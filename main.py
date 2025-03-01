@@ -243,6 +243,21 @@ def main() -> None:
     )
     initcommands(parser)
 
+    knowncmds = ['push', 'pull', 'commit', 'add', 'log', 'clone', 'branch', 'checkout', 'status', 'fetch', 'merge', 'rebase', 'stash']
+
+    if len(argv) > 1 and argv[1] in knowncmds:
+        cmd: str = argv[1]
+        argvs: List[str] = argv[2:]
+        minimalargs = Namespace(
+            cont=False,
+            dry=False,
+            verbose=False,
+            quiet=False,
+            mainpbar=None
+        )
+        runcmd(["git", cmd] + argvs, minimalargs)
+        return
+
     # get args
     args: Namespace = parser.parse_args()
 

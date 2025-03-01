@@ -21,7 +21,7 @@ def loadingthread(message: str, stopevent: Event) -> None:
         stdout.write(f'\r{frames[frame]} {formatted_message}')
         stdout.flush()
         sleep(0.1)
-        frame = (frame + 1) % len(frames)
+        frame = (frame + 1) % len(frames) 
     
     # clear the line
     stdout.write(f'\r {len(formatted_message)*2}\r')
