@@ -42,5 +42,5 @@ fi
 
 mv ./*.so ./temp/
 
-sudo mv ./dist/meow /usr/bin/meow
+sudo mv "./dist/meow" "/usr/bin/meow"
 echo "installed to /usr/bin/meow"

@@ -12,7 +12,7 @@ from subprocess import list2cmdline, run as runsubprocess, CompletedProcess, Cal
 # initialize colorama
 init(autoreset=True)
 
-VERSION: Final[str] = "0.2.4"
+VERSION: Final[str] = "0.2.5"
 ArgParser: TypeAlias = ArgumentParser
 StepsList: TypeAlias = List[str]
 
