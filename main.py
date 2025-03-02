@@ -5,8 +5,8 @@ from colorama import Fore, Style, init
 from typing import List, Optional, TypeAlias, Final
 from argparse import ArgumentParser, Namespace
 from loaders import startloadinganimation, stoploadinganimation, ThreadEventTuple
-from helpers import completebar, initcommands, validateargs, commithelper, pushhelper, CommandList
-from loggers import success, error, info, printcmd, printinfo, printsteps, ProgressBarType
+from helpers import completebar, initcommands, validateargs, commithelper, pushhelper
+from loggers import success, error, info, printcmd, printinfo, printsteps, ProgressBar
 from subprocess import list2cmdline, run as runsubprocess, CompletedProcess, CalledProcessError
 
 # initialize colorama
@@ -15,19 +15,26 @@ init(autoreset=True)
 VERSION: Final[str] = "0.2.5"
 ArgParser: TypeAlias = ArgumentParser
 StepsList: TypeAlias = List[str]
+minimal = Namespace(
+    cont=False, 
+    dry=False, 
+    verbose=True, 
+    quiet=False, 
+    mainpbar=None
+)
 
 def pullhandler(args: Namespace) -> None:
     '''handles git pull operations'''
-    pull: CommandList = ["git", "pull"]
+    pull: List[str] = ["git", "pull"]
     if args.norebase:
         pull.append("--no-rebase")
     if args.pull or args.norebase:
         if hasattr(args, 'mainpbar'): # checks of the main bar exists
-            runcmd(pull, args, mainpbar=args.mainpbar)
+            runcmd(cmd=pull, flags=args, mainpbar=args.mainpbar)
         else:
-            runcmd(pull, args, args.cont, args.dry)
+            runcmd(cmd=pull, flags=args, mainpbar=args.mainpbar)
 
-def parseoutput(result: CompletedProcess[bytes], flags: Namespace, pbar: ProgressBarType, mainpbar: Optional[ProgressBarType]) -> None:
+def parseoutput(result: CompletedProcess[bytes], flags: Namespace, pbar: ProgressBar, mainpbar: Optional[ProgressBar]) -> None:
     outputstr: str = result.stdout.decode('utf-8', errors='replace').strip()
     pbar.n = 80
     pbar.refresh()
@@ -44,19 +51,23 @@ def parseoutput(result: CompletedProcess[bytes], flags: Namespace, pbar: Progres
             elif 'create mode' in outputstr or 'delete mode' in outputstr:
                 # show additions/deletions
                 outputl: List[str] = outputstr.split('\n')
-                for line in outputl:
-                    info(f"    i {Fore.BLACK}{outputl}", mainpbar)
+                for line in outputl: # make sure everything is indented properly
+                    info(f"    i {Fore.BLACK}{line}", mainpbar)
             elif len(outputstr) < 200:  # show short messages
                 if flags.message in outputstr: # dont duplicate commit message
                     pass
                 else:
                     info(f"    i {Fore.BLACK}{outputstr}", mainpbar)
 
-def runcmdwithoutprogress(args: CommandList, mainpbar: Optional[ProgressBarType]) -> CompletedProcess[bytes]:
-    result: CompletedProcess[bytes] = runsubprocess(args, check=True, cwd=getcwd(), capture_output=True)
+def runcmdwithoutprogress(cmd: List[str], mainpbar: Optional[ProgressBar], captureoutput: bool = True) -> CompletedProcess[bytes]:
+    result: CompletedProcess[bytes] = runsubprocess(cmd, check=True, cwd=getcwd(), capture_output=captureoutput)
     # parse output
     outputstr: str = result.stdout.decode('utf-8', errors='replace').strip()
     if outputstr:
+        # if args.verbose:
+        #     outputl = outputstr.split('\n')
+        #     for line in outputl:
+        #         info(f'    i {Fore.CYAN}{line}', mainpbar)
         # check for specific outputs
         if 'Everything up-to-date' in outputstr:
             info(f"    i {Fore.CYAN}everything up to date", mainpbar)
@@ -68,10 +79,10 @@ def runcmdwithoutprogress(args: CommandList, mainpbar: Optional[ProgressBarType]
     success("  ✓ completed successfully", mainpbar)
     return result
 
-def runcmd(args: CommandList, flags: Namespace, mainpbar: Optional[ProgressBarType] = None, showprogress: bool = True, keepbar: bool = False) -> Optional[CompletedProcess[bytes]]:
+def runcmd(cmd: List[str], flags: Namespace = minimal, mainpbar: Optional[ProgressBar] = None, keepbar: bool = False, captureoutput=True) -> Optional[CompletedProcess[bytes]]:
     '''executes a command with error handling'''
     cwd: str = getcwd()
-    cmdstr: str = list2cmdline(args)
+    cmdstr: str = list2cmdline(cmd)
 
     if flags.dry:
         printcmd(cmdstr, mainpbar)
@@ -82,24 +93,25 @@ def runcmd(args: CommandList, flags: Namespace, mainpbar: Optional[ProgressBarTy
         printcmd(f"    $ {cmdstr}", mainpbar)
 
         # capture output to parse relevant messages
-        cmdargs: CommandList = args.copy()
-        result: Optional[CompletedProcess[bytes]] = None
-
-        if not showprogress:
-            result = runcmdwithoutprogress(cmdargs, mainpbar)
-            return result
+        cmdargs: List[str] = cmd.copy()
+        result: Optional[CompletedProcess[bytes]]
 
         with tqdm(total=100, desc=f"{Fore.CYAN}mrrping...{Style.RESET_ALL}", bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}', position=1, leave=keepbar) as pbar:
             pbar.update(10)
-            animation: ThreadEventTuple = startloadinganimation(f"executing {" ".join(cmdargs)}...")
+            animationmessage: str = f"executing {" ".join(cmdargs)}..."
+            if " ".join(cmdargs) == "git log":
+                animationmessage = "q to exit: "
 
-            result = runsubprocess(cmdargs, check=True, cwd=cwd, capture_output=True)
+            animation: ThreadEventTuple = startloadinganimation(animationmessage)
+
+            result = runsubprocess(cmdargs, check=True, cwd=cwd, capture_output=captureoutput)
             pbar.n = 50
             pbar.refresh()
 
             stoploadinganimation(animation)
 
-            parseoutput(result, flags, pbar, mainpbar)
+            if result:
+                parseoutput(result, flags, pbar, mainpbar)
 
             pbar.n = 100
             pbar.colour = 'green'
@@ -125,6 +137,8 @@ def runcmd(args: CommandList, flags: Namespace, mainpbar: Optional[ProgressBarTy
         return None
 
 def checkargv(args: List[str], parser: ArgParser) -> None:
+    knowncmds: List[str] = ['push', 'pull', 'commit', 'add', 'log', 'clone', 'branch', 'checkout', 'status', 'fetch', 'merge', 'rebase', 'stash']
+
     if len(args) != 1:
         # fancy header
         print(f"{Fore.MAGENTA}{Style.BRIGHT}meow {Style.RESET_ALL}{Fore.CYAN}v{VERSION}{Style.RESET_ALL}")
@@ -139,6 +153,14 @@ def checkargv(args: List[str], parser: ArgParser) -> None:
             exit(0)
         else:
             print(f"\ncurrent directory: {Style.BRIGHT}{getcwd()}")
+    
+    if len(argv) > 1 and argv[1] in knowncmds:
+        argvs: List[str] = argv[2:]
+        cmd: List[str] = ["git", argv[1]] + argvs
+        
+
+        runcmd(cmd=cmd, captureoutput=False)
+        return
 
 def getsteps(args: Namespace) -> StepsList:
     steps: StepsList = []
@@ -167,32 +189,35 @@ def getsteps(args: Namespace) -> StepsList:
 
     return steps
 
-def checkstatus(args: Namespace, progressbar: ProgressBarType) -> bool:
+def checkstatus(args: Namespace, progressbar: ProgressBar) -> bool:
     # status check
     if args.status:
         info(f"{Style.BRIGHT}status check{Style.RESET_ALL}", progressbar)
-        runcmd(["git", "status"], args, mainpbar=progressbar, showprogress=False)
+        cmd: List[str] = ["git", "status"]
+        runcmdwithoutprogress(cmd=cmd, mainpbar=progressbar)
         progressbar.update(1)
         return True
     return False
 
-def updatesubmodules(args: Namespace, progressbar: ProgressBarType) -> bool:
+def updatesubmodules(args: Namespace, progressbar: ProgressBar) -> bool:
     if args.updatesubmodules:
         info(f"\n{Style.BRIGHT}updating submodules{Style.RESET_ALL}", progressbar)
-        runcmd(["git", "submodule", "update", "--init", "--recursive"], args, mainpbar=progressbar)
+        cmd: List[str] = ["git", "submodule", "update", "--init", "--recursive"]
+        runcmd(cmd=cmd, flags=args, mainpbar=progressbar)
         progressbar.update(1)
         return True
     return False
 
-def stashchanges(args: Namespace, progressbar: ProgressBarType) -> bool:
+def stashchanges(args: Namespace, progressbar: ProgressBar) -> bool:
     if args.stash:
         info(f"\n{Style.BRIGHT}stashing changes{Style.RESET_ALL}", progressbar)
-        runcmd(["git", "stash"], args, mainpbar=progressbar)
+        cmd: List[str] = ["git", "stash"]
+        runcmd(cmd=cmd, flags=args, mainpbar=progressbar)
         progressbar.update(1)
         return True
     return False
 
-def pull(args: Namespace, progressbar: ProgressBarType) -> bool:
+def pull(args: Namespace, progressbar: ProgressBar) -> bool:
     if args.pull or args.norebase:
         info(f"\n{Style.BRIGHT}pulling from remote{Style.RESET_ALL}",progressbar)
         # create a copy of args with the progress bar added
@@ -202,29 +227,29 @@ def pull(args: Namespace, progressbar: ProgressBarType) -> bool:
         return True
     return False
 
-def stage(args: Namespace, progressbar: ProgressBarType) -> None:
+def stage(args: Namespace, progressbar: ProgressBar) -> None:
     info(f"\n{Style.BRIGHT}staging changes{Style.RESET_ALL}", progressbar)
-    addcmd: CommandList = ["git", "add", *args.add] if args.add else ["git", "add", "."]
+    addcmd: List[str] = ["git", "add", *args.add] if args.add else ["git", "add", "."]
     if args.verbose and not args.quiet:
         addcmd.append("--verbose")
-    runcmd(addcmd, args, mainpbar=progressbar)
+    runcmd(cmd=addcmd, flags=args, mainpbar=progressbar)
     progressbar.update(1)
 
-def diff(args: Namespace, progressbar: ProgressBarType) -> bool:
+def diff(args: Namespace, progressbar: ProgressBar) -> bool:
     if args.diff:
         info(f"\n{Style.BRIGHT}showing diff{Style.RESET_ALL}", progressbar)
-        runcmd(["git", "diff", "--staged"], args, showprogress=False, mainpbar=progressbar)
-        progressbar.update(1)
+        cmd: List[str] = ["git", "diff", "--staged"]
+        runcmdwithoutprogress(cmd=cmd, mainpbar=progressbar)
         return True
     return False
 
-def commit(args: Namespace, progressbar: ProgressBarType) -> None:
+def commit(args: Namespace, progressbar: ProgressBar) -> None:
     info(f"\n{Style.BRIGHT}committing{Style.RESET_ALL}", progressbar)
-    commitcmd: CommandList = commithelper(args)
+    commitcmd: List[str] = commithelper(args)
     runcmd(commitcmd, args, mainpbar=progressbar)
     progressbar.update(1)
 
-def push(pushcmd: Optional[CommandList], args: Namespace, progressbar: ProgressBarType) -> bool:
+def push(pushcmd: Optional[List[str]], args: Namespace, progressbar: ProgressBar) -> bool:
     if pushcmd:
         info(f"\n{Style.BRIGHT}pushing to remote{Style.RESET_ALL}", progressbar)
         runcmd(pushcmd, args, mainpbar=progressbar)
@@ -242,21 +267,6 @@ def main() -> None:
         epilog=f"{Fore.MAGENTA}{Style.BRIGHT}meow {Style.RESET_ALL}{Fore.CYAN}v{VERSION}{Style.RESET_ALL}"
     )
     initcommands(parser)
-
-    knowncmds = ['push', 'pull', 'commit', 'add', 'log', 'clone', 'branch', 'checkout', 'status', 'fetch', 'merge', 'rebase', 'stash']
-
-    if len(argv) > 1 and argv[1] in knowncmds:
-        cmd: str = argv[1]
-        argvs: List[str] = argv[2:]
-        minimalargs = Namespace(
-            cont=False,
-            dry=False,
-            verbose=False,
-            quiet=False,
-            mainpbar=None
-        )
-        runcmd(["git", cmd] + argvs, minimalargs)
-        return
 
     # get args
     args: Namespace = parser.parse_args()
@@ -320,7 +330,7 @@ def main() -> None:
         completedsteps += 1
 
         # push
-        pushl: Optional[CommandList] = pushhelper(args)
+        pushl: Optional[List[str]] = pushhelper(args)
         if push(pushl, args, progressbar):
             completedsteps += 1
 

@@ -7,38 +7,38 @@ from typing import Optional, List, TypeAlias, NoReturn
 things that log
 '''
 
-ProgressBarType: TypeAlias = tqdm
+ProgressBar: TypeAlias = tqdm
 FormatString: TypeAlias = str
 
-def success(message: str, pbar: Optional[ProgressBarType] = None) -> None:
+def success(message: str, pbar: Optional[ProgressBar] = None) -> None:
     '''print success message'''
     if pbar:
         pbar.write(f"{Fore.GREEN}{Style.BRIGHT}{message}")
     else:
         print(f"{Fore.GREEN}{Style.BRIGHT}{message}")
 
-def error(message: str, pbar: Optional[ProgressBarType] = None) -> None:
+def error(message: str, pbar: Optional[ProgressBar] = None) -> None:
     '''print error message'''
     if pbar:
         pbar.write(f"{Fore.RED}{Style.BRIGHT}{message}")
     else:
         print(f"{Fore.RED}{Style.BRIGHT}{message}")
 
-def info(message: str, pbar: Optional[ProgressBarType] = None) -> None:
+def info(message: str, pbar: Optional[ProgressBar] = None) -> None:
     '''print info message'''
     if pbar:
         pbar.write(f"{Fore.BLUE}{message}")
     else:
         print(f"{Fore.BLUE}{message}")
 
-def warning(message: str, pbar: Optional[ProgressBarType] = None) -> None:
+def warning(message: str, pbar: Optional[ProgressBar] = None) -> None:
     '''print warning message'''
     if pbar:
         pbar.write(f"{Fore.YELLOW}{Style.BRIGHT}{message}")
     else:
         print(f"{Fore.YELLOW}{Style.BRIGHT}{message}")
 
-def printcmd(cmd: str, pbar: Optional[ProgressBarType] = None) -> None:
+def printcmd(cmd: str, pbar: Optional[ProgressBar] = None) -> None:
     '''prints a command'''
     if pbar:
         pbar.write(f"{Fore.CYAN}{cmd}")

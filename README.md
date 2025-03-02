@@ -4,7 +4,7 @@ a git wrapper made in python
 development takes place on the dev branch, main is for prod
 
 ## installation
-run this: (unsure if it works)
+run this: (untested for now)
 ```
 curl -fsSL "https://raw.githubusercontent.com/ellipticobj/meower/refs/heads/main/install.sh" | sh
 ```
