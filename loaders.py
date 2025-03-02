@@ -11,7 +11,10 @@ loading animations
 ThreadEventTuple: TypeAlias = Tuple[Thread, Event]
 FrameType: TypeAlias = List[str]
 
-def loadingthread(message: str, stopevent: Event) -> None:
+def loadingthread(
+        message: str, 
+        stopevent: Event
+        ) -> None:
     '''animated loading icon function to run in a thread'''
     frames: FrameType = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
     frame: int = 0
@@ -49,7 +52,10 @@ def stoploadinganimation(threadinfo: ThreadEventTuple) -> None:
     stdout.write('\r\x1b[2K\r') # use ansi codes to write the entire line to prevent artifacts
     stdout.flush()
 
-def unthreadedloadinganimation(message: str, duration: float = 2.0) -> None:
+def unthreadedloadinganimation(
+        message: str, 
+        duration: float = 2.0
+        ) -> None:
     '''unthreaded loading animation'''
     frames: FrameType = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
     frame: int = 0
