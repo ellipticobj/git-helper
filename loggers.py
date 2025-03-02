@@ -104,7 +104,7 @@ def formatcommit(
 
 def showcommitresult(
         result: CompletedProcess[bytes], 
-        mainpbar: Optional[tqdm]
+        mainpbar: Optional[tqdm] = None
         ) -> None:
     '''displays formatted commit'''
     if result.returncode == 0:
@@ -116,3 +116,13 @@ def showcommitresult(
                 date=parts[2],
                 message=parts[3]
             ), mainpbar)
+
+def showresult(
+        result: CompletedProcess[bytes],
+        mainpbar: Optional[tqdm] = None
+        ) -> None:
+    '''displays normal results'''
+    if result.returncode == 0:
+        out: List[str] = result.stdout.decode().split("\n")
+        for line in out:
+            info(f"    i {Fore.CYAN}{line}", mainpbar)

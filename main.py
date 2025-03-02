@@ -61,6 +61,13 @@ def runcmd(
     '''executes a command with error handling'''
     if len(cmd) < 1: # if command is [], exit immediately
         return None
+    
+    interactive = cmd[0] == "git" and cmd[1] == "commit" and len(cmd) == 2
+
+    if interactive:
+        captureoutput = False
+        if mainpbar:
+            mainpbar.clear()
 
     cwd: str = getcwd()
     cmdstr: str = list2cmdline(cmd)
@@ -76,6 +83,10 @@ def runcmd(
         # capture output to parse relevant messages
         cmdargs: List[str] = cmd.copy()
         result: Optional[CompletedProcess[bytes]]
+
+        if len(cmd) > 1 and cmd[1] == "log":
+            result = runsubprocess(cmd, check=False)
+            return result
 
         basecmd = cmd[1] if len(cmd) > 1 else ''
         defaultcmd = f"executing {cmdstr}..."
@@ -140,38 +151,88 @@ def handlegitcommands(args: List[str]) -> None:
     '''parses meow <cmd> commands'''
     gitcommand = args[1]
     commandarguments: List[str] = args[2:]
+    precmd: List[str]
     cmd: List[str]
+    cmdstr: str
+    # preresult: Optional[CompletedProcess[bytes]]
+    result: Optional[CompletedProcess[bytes]]
 
-    # minimal progress bar for git commands
-    with tqdm(total=100, desc=f"{Fore.CYAN}mrrping...{Style.RESET_ALL}", bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}', position=0, leave=True) as mainpbar:
-        mainpbar.update(10)
-        animation = startloadinganimation(GITCOMMANDMESSAGES.get(gitcommand, "processing..."))
-        
-        if gitcommand == "add":
-            cmd = ["git", "add"] + (commandarguments or ["."])
-        elif gitcommand == "commit":
-            cmd = ["git", "commit"] + (["-m"] + commandarguments if commandarguments else [])
-        # elif gitcommand == "push": # TODO: finish this
-        #     pass
-        # elif gitcommand == "pull":
-        #     pass
-        # elif gitcommand == "clone":
-        #     pass
-        # elif gitcommand == "log":
-        #     pass
-        else:
-            cmd = ["git", gitcommand] + commandarguments
+    try:
+        cmd = ["git", "log"] + commandarguments
+        cmdstr = list2cmdline(cmd)
+        if gitcommand == "log":
+            result = runsubprocess(cmd, check=False)
+            exit(result.returncode)
 
-        result = runcmd(cmd=cmd, captureoutput=False, mainpbar=mainpbar)
+        # minimal progress bar for git commands
+        with tqdm(
+            total=100, 
+            desc=f"{Fore.CYAN}mrrping...{Style.RESET_ALL}", 
+            bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}', 
+            position=0, 
+            leave=True
+        ) as mainpbar:
+            
+            mainpbar.update(10)
+            animation: ThreadEventTuple = startloadinganimation(GITCOMMANDMESSAGES.get(gitcommand, "processing..."))
+            
+            if gitcommand == "add":
+                precmd = []
+                cmd = ["git", "add"] + (commandarguments or ["."])
+            elif gitcommand == "commit":
+                precmd = ["git", "add", "."]
+                cmd = ["git", "commit"] + (["-m"] + commandarguments if commandarguments else [])
+            # elif gitcommand == "push": # TODO: finish this
+            #     pass
+            # elif gitcommand == "pull":
+            #     pass
+            # elif gitcommand == "clone":
+            #     pass
+            else:
+                cmd = ["git", gitcommand] + commandarguments
+
+            cmdstr = list2cmdline(cmd)
+
+            runcmd(
+                cmd=precmd, 
+                captureoutput=(gitcommand != "log"),  # dont capture output for log
+                mainpbar=mainpbar
+            )
+
+            result = runcmd(
+                cmd=cmd, 
+                captureoutput=(gitcommand != "log"),  # dont capture output for log
+                mainpbar=mainpbar
+            )
+            
+            stoploadinganimation(animation)
+            mainpbar.update(100)
+
+            if gitcommand == "commit":
+                if result:
+                    showcommitresult(result=result, mainpbar=mainpbar)
+            
+            mainpbar.n = 100
+            mainpbar.refresh()
         
-        stoploadinganimation(animation)
-        mainpbar.update(100)
-        
-        if gitcommand == "commit" and result:
-            showcommitresult(result=result, mainpbar=mainpbar)
-    
-    # exit after handling command
-    exit(0 if result and result.returncode == 0 else 1)
+        # exit after handling command
+        exit_code = 0 if result and result.returncode == 0 else 1
+        exit(exit_code)
+    except CalledProcessError as e:
+        error(f"\n❌ command failed with exit code {e.returncode}:")
+        printcmd(f"  $ {cmdstr}")
+
+        if e.stdout:
+            info(f"{Fore.BLACK}{e.stdout.decode('utf-8', errors='replace')}")
+
+        if e.stderr:
+            error(f"{Fore.RED}{e.stderr.decode('utf-8', errors='replace')}")
+
+        exit(e.returncode)
+        return None
+    except KeyboardInterrupt:
+        error(f"{Fore.CYAN}user interrupted")
+        return None
 
 def getsteps(args: Namespace) -> List[str]:
     steps: List[str] = []
@@ -201,18 +262,18 @@ def getsteps(args: Namespace) -> List[str]:
     return steps
 
 def main() -> None:
-    # start animatior before initialization
-    initializinganimation: ThreadEventTuple = startloadinganimation("initializing...")
-
     # init
     parser: ArgumentParser = ArgumentParser(
         prog="meow",
         epilog=f"{Fore.MAGENTA}{Style.BRIGHT}meow {Style.RESET_ALL}{Fore.CYAN}v{VERSION}{Style.RESET_ALL}"
     )
-    initcommands(parser)
 
     # check argv before parsing args
     checkargv(argv, parser)
+
+    # start animatior before initialization
+    initializinganimation: ThreadEventTuple = startloadinganimation("initializing...")
+    initcommands(parser)
 
     # get args
     args: Namespace = parser.parse_args()
