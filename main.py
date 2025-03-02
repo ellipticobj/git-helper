@@ -12,7 +12,7 @@ from subprocess import list2cmdline, run as runsubprocess, CompletedProcess, Cal
 # initialize colorama
 init(autoreset=True)
 
-VERSION: Final[str] = "0.2.5"
+VERSION: Final[str] = "0.2.5-preview1"
 ArgParser: TypeAlias = ArgumentParser
 StepsList: TypeAlias = List[str]
 minimal = Namespace(
@@ -98,9 +98,11 @@ def runcmd(cmd: List[str], flags: Namespace = minimal, mainpbar: Optional[Progre
 
         with tqdm(total=100, desc=f"{Fore.CYAN}mrrping...{Style.RESET_ALL}", bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}', position=1, leave=keepbar) as pbar:
             pbar.update(10)
-            animationmessage: str = f"executing {" ".join(cmdargs)}..."
-            if " ".join(cmdargs) == "git log":
+            animationmessage: str = f"executing {cmdstr}..."
+            if cmdstr == "git log":
                 animationmessage = "q to exit: "
+            elif cmdstr.startswith("git commit"):
+                animationmessage = "committing...\n"
 
             animation: ThreadEventTuple = startloadinganimation(animationmessage)
 
