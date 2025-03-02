@@ -7,7 +7,9 @@ from typing import List, Optional, Final
 from loaders import startloadinganimation, stoploadinganimation, ThreadEventTuple
 from subprocess import list2cmdline, run as runsubprocess, CompletedProcess, CalledProcessError
 from loggers import success, error, info, printcmd, printinfo, printsteps, printoutput, showcommitresult
-from helpers import completebar, initcommands, validateargs, getpushcommand, getstatuscommand, getsubmoduleupdatecommand, getstashcommand, getpullcommand, getstagecommand, getdiffcommand, getcommitcommand
+from helpers import completebar, initcommands, validateargs, getpushcommand, getstatuscommand, getsubmoduleupdatecommand, getstashcommand, getpullcommand, getstagecommand, getdiffcommand, getcommitcommand, getgitcommands
+
+# TODO: fix funky error that appears at the end of some args
 
 # initialize colorama
 init(autoreset=True)
@@ -59,15 +61,15 @@ def runcmd(
         captureoutput: bool = True
         ) -> Optional[CompletedProcess[bytes]]:
     '''executes a command with error handling'''
-    if len(cmd) < 1: # if command is [], exit immediately
+    if len(cmd) < 1:  # if command is empty, exit immediately
         return None
-    
-    interactive = cmd[0] == "git" and cmd[1] == "commit" and len(cmd) == 2
 
+    interactive = cmd[0] == "git" and cmd[1] == "commit" and len(cmd) == 2
     if interactive:
+        # dont capture output for interactive commands so that git can use the terminal properly.
         captureoutput = False
         if mainpbar:
-            mainpbar.clear()
+            mainpbar.clear()  # clear the main progress bar output
 
     cwd: str = getcwd()
     cmdstr: str = list2cmdline(cmd)
@@ -79,29 +81,39 @@ def runcmd(
     try:
         info("  running command:", mainpbar)
         printcmd(f"    $ {cmdstr}", mainpbar)
-
-        # capture output to parse relevant messages
         cmdargs: List[str] = cmd.copy()
-        result: Optional[CompletedProcess[bytes]]
+        result: Optional[CompletedProcess[bytes]] = None
 
+        # run git log without the extras
         if len(cmd) > 1 and cmd[1] == "log":
             result = runsubprocess(cmd, check=False)
             return result
 
+        if interactive: # run the interactive command without mrrping progress bar
+            result = runsubprocess(cmdargs, check=True, cwd=cwd, capture_output=captureoutput)
+            if result and mainpbar: # use the passed mainpbar for any output display
+                printoutput(result, flags, mainpbar, mainpbar)
+            return result
+        
+        # show a per command progress bar and loader
         basecmd = cmd[1] if len(cmd) > 1 else ''
         defaultcmd = f"executing {cmdstr}..."
         animationmessage: str = GITCOMMANDMESSAGES.get(basecmd, defaultcmd)
 
-        with tqdm(total=100, desc=f"{Fore.CYAN}mrrping...{Style.RESET_ALL}", bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}', position=1, leave=keepbar) as pbar:
+        with tqdm(
+            total=100, 
+            desc=f"{Fore.CYAN}mrrping...{Style.RESET_ALL}", 
+            bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}', 
+            position=1, 
+            leave=keepbar
+        ) as pbar:
             pbar.update(10)
-            animation: ThreadEventTuple = startloadinganimation(animationmessage)
+            animation = startloadinganimation(animationmessage)
             result = runsubprocess(cmdargs, check=True, cwd=cwd, capture_output=captureoutput)
             pbar.n = 50
             pbar.refresh()
 
             stoploadinganimation(animation)
-            del animation
-
             if result:
                 printoutput(result, flags, pbar, mainpbar)
 
@@ -109,22 +121,24 @@ def runcmd(
             pbar.colour = 'green'
             pbar.refresh()
             success("  ✓ completed successfully", mainpbar)
-
             return result
     except CalledProcessError as e:
+        # update the main progress bar to red before exiting.
+        if mainpbar is not None:
+            mainpbar.colour = 'magenta'
+            mainpbar.refresh()
+        
         error(f"\n❌ command failed with exit code {e.returncode}:", mainpbar)
         printcmd(f"  $ {cmdstr}", mainpbar)
-
         if e.stdout:
             info(f"{Fore.BLACK}{e.stdout.decode('utf-8', errors='replace')}", mainpbar)
-
         if e.stderr:
             error(f"{Fore.RED}{e.stderr.decode('utf-8', errors='replace')}", mainpbar)
 
         if not flags.cont:
             exit(e.returncode)
         else:
-            info(f"{Fore.CYAN}continuing...")
+            info(f"{Fore.CYAN}continuing...", mainpbar)
         return None
     except KeyboardInterrupt:
         error(f"{Fore.CYAN}user interrupted", mainpbar)
@@ -174,23 +188,12 @@ def handlegitcommands(args: List[str]) -> None:
         ) as mainpbar:
             
             mainpbar.update(10)
-            animation: ThreadEventTuple = startloadinganimation(GITCOMMANDMESSAGES.get(gitcommand, "processing..."))
             
-            if gitcommand == "add":
-                precmd = []
-                cmd = ["git", "add"] + (commandarguments or ["."])
-            elif gitcommand == "commit":
-                precmd = ["git", "add", "."]
-                cmd = ["git", "commit"] + (["-m"] + commandarguments if commandarguments else [])
-            # elif gitcommand == "push": # TODO: finish this
-            #     pass
-            # elif gitcommand == "pull":
-            #     pass
-            # elif gitcommand == "clone":
-            #     pass
-            else:
-                cmd = ["git", gitcommand] + commandarguments
-
+            animation: Optional[ThreadEventTuple] = None
+            if not (gitcommand == "commit" and not commandarguments):
+                animation = startloadinganimation(GITCOMMANDMESSAGES.get(gitcommand, "processing..."))
+            
+            precmd, cmd = getgitcommands(gitcommand, commandarguments)
             cmdstr = list2cmdline(cmd)
 
             runcmd(
@@ -199,13 +202,16 @@ def handlegitcommands(args: List[str]) -> None:
                 mainpbar=mainpbar
             )
 
+            info(message="", pbar=mainpbar)
+
             result = runcmd(
                 cmd=cmd, 
                 captureoutput=(gitcommand != "log"),  # dont capture output for log
                 mainpbar=mainpbar
             )
             
-            stoploadinganimation(animation)
+            if animation:
+                stoploadinganimation(animation)
             mainpbar.update(100)
 
             if gitcommand == "commit":
@@ -221,10 +227,8 @@ def handlegitcommands(args: List[str]) -> None:
     except CalledProcessError as e:
         error(f"\n❌ command failed with exit code {e.returncode}:")
         printcmd(f"  $ {cmdstr}")
-
         if e.stdout:
             info(f"{Fore.BLACK}{e.stdout.decode('utf-8', errors='replace')}")
-
         if e.stderr:
             error(f"{Fore.RED}{e.stderr.decode('utf-8', errors='replace')}")
 

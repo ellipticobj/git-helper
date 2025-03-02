@@ -233,3 +233,25 @@ def getcommitcommand(
     cmd: List[str] = _getcommitcommand(args)
     progressbar.update(1)
     return cmd
+
+def getgitcommands(
+        gitcommand: str, 
+        commandarguments: List[str]
+        ):
+    if gitcommand == "add":
+        precmd = []
+        cmd = ["git", "add"] + (commandarguments or ["."])
+    elif gitcommand == "commit":
+        precmd = ["git", "add", "."]
+        cmd = ["git", "commit"] + (["-m"] + commandarguments if commandarguments else [])
+    # elif gitcommand == "push": # TODO: finish this
+    #     pass
+    # elif gitcommand == "pull":
+    #     pass
+    # elif gitcommand == "clone":
+    #     pass
+    else:
+        precmd = []
+        cmd = ["git", gitcommand] + commandarguments
+    
+    return precmd, cmd
