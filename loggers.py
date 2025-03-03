@@ -159,7 +159,7 @@ def showcommitresult(
                     message=parts[3]
                 ), mainpbar)
         else:
-            info(f"    i {Fore.CYAN}{output}", mainpbar)
+            info(f"      i {Fore.CYAN}{output}", mainpbar)
     except Exception as e:
         error(f"error showing commit: {str(e)}", mainpbar)
 
