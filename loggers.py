@@ -71,6 +71,7 @@ def printoutput(
             # output everything
             info(f"    i {Fore.CYAN}{outputstr}", mainpbar)
         else:
+            messagestr = " ".join(flags.message) if isinstance(flags.message, list) else flags.message
             # check for specific outputs
             if 'Everything up-to-date' in outputstr:
                 info(f"    i {Fore.CYAN}everything up-to-date", mainpbar)
@@ -82,7 +83,7 @@ def printoutput(
                 for line in outputl: # make sure everything is indented properly
                     info(f"    i {Fore.BLACK}{line}", mainpbar)
             elif len(outputstr) < 200:  # show short messages
-                if flags.message in outputstr: # dont duplicate commit message
+                if messagestr in outputstr: # dont duplicate commit message
                     pass
                 else:
                     info(f"    i {Fore.BLACK}{outputstr}", mainpbar)
