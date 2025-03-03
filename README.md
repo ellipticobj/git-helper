@@ -1,10 +1,10 @@
 # meow
-a git wrapper made in python
-
-development takes place on the dev branch, main is for prod
+a git wrapper made in python  
+currently very buggy :(  
+development takes place on the dev branch, main is for prod  
 
 ## installation
-this is currently only for *nix arm64 systems.  
+this is currently only for linux arm64 systems.  
 
 run this to install the latest release: (untested for now)
 ```
