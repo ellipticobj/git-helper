@@ -101,7 +101,9 @@ def _getcommitcommand(args: Namespace) -> List[str]:
     commit: List[str] = ["git", "commit"]
 
     if args.message:
-        commit.extend(["-m", args.message])
+        message = " ".join(args.message) if isinstance(args.message, list) else args.message
+        commit.extend(["-m", message])
+
     elif args.nomsg:
         commit.append("--allow-empty-message")
 
@@ -230,7 +232,8 @@ def getcommitcommand(
         ) -> List[str]:
     '''gets command for git commit'''
     info(f"\n{Style.BRIGHT}committing{Style.RESET_ALL}", progressbar)
-    cmd: List[str] = _getcommitcommand(args)
+    commitcmd: List[str] = _getcommitcommand(args)
+    cmd: List[str] = commitcmd + ["&&"] + ["git", "show", "-s", "--pretty=format:'%H|%an|%ad|%s'"]
     progressbar.update(1)
     return cmd
 

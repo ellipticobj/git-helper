@@ -108,14 +108,18 @@ def showcommitresult(
         ) -> None:
     '''displays formatted commit'''
     if result.returncode == 0:
-        parts = result.stdout.decode().split('|')
-        if len(parts) == 4:
-            info(formatcommit(
-                commit_hash=parts[0][:7],
-                author=parts[1],
-                date=parts[2],
-                message=parts[3]
-            ), mainpbar)
+        output = result.stdout.decode()
+        if '|' in output:
+            parts = output.split('|')
+            if len(parts) == 4:
+                info(formatcommit(
+                    commit_hash=parts[0][:7],
+                    author=parts[1],
+                    date=parts[2],
+                    message=parts[3]
+                ), mainpbar)
+        else:
+            info(f"    i {Fore.CYAN}{output}", mainpbar)
 
 def showresult(
         result: CompletedProcess[bytes],

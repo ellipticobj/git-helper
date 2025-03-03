@@ -10,6 +10,7 @@ from loggers import success, error, info, printcmd, printinfo, printsteps, print
 from helpers import completebar, initcommands, validateargs, getpushcommand, getstatuscommand, getsubmoduleupdatecommand, getstashcommand, getpullcommand, getstagecommand, getdiffcommand, getcommitcommand, getgitcommands
 
 # TODO: fix funky error that appears at the end of some args
+# TODO: print out something before running command when using gitcommands
 
 # initialize colorama
 init(autoreset=True)
@@ -24,7 +25,7 @@ GITCOMMANDMESSAGES = {
     'status': 'checking repo status...'
 }
 KNOWNCMDS: List[str] = ['push', 'pull', 'commit', 'add', 'log', 'clone']
-VERSION: Final[str] = "0.2.5-preview1"
+VERSION: Final[str] = "0.2.5-preview2"
 MinimalNamespace = Namespace(
     cont=False, 
     dry=False, 
@@ -37,8 +38,11 @@ def runcmdwithoutprogress(
         cmd: List[str], 
         mainpbar: Optional[tqdm], 
         captureoutput: bool = True
-        ) -> CompletedProcess[bytes]:
+        ) -> Optional[CompletedProcess[bytes]]:
     '''runs command without progressbar'''
+    if len(cmd) < 1:
+        return None
+    
     result: CompletedProcess[bytes] = runsubprocess(cmd, check=True, cwd=getcwd(), capture_output=captureoutput)
     # parse output
     outputstr: str = result.stdout.decode('utf-8', errors='replace').strip()
@@ -332,10 +336,11 @@ def main() -> None:
         completedsteps += toadd
 
         toadd, cmd = getpullcommand(args, progressbar)
-        runcmd(cmd=cmd, flags=args, mainpbar=args.mainpbar)
+        runcmd(cmd=cmd, flags=args, mainpbar=progressbar)
         completedsteps += 1
 
         cmd = getstagecommand(args, progressbar)
+        print(cmd)
         runcmd(cmd=cmd, flags=args, mainpbar=progressbar)
         completedsteps += 1
 
