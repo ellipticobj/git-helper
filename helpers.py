@@ -260,4 +260,5 @@ def getgitcommands(
 
 def getpulldiffcommand() -> List[str]:
     '''Get command to show diff after pull'''
-    return ["git", "-c", "color.ui=always", "diff", "--stat", "HEAD@{1}", "HEAD"]
+    # return ["git", "-c", "color.ui=always", "diff", "--stat", "HEAD@{1}", "HEAD"]
+    return ["git", "diff", "--numstat", "HEAD@{1}", "HEAD"]

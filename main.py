@@ -37,7 +37,8 @@ def runcmdwithoutprogress(
         cmd: List[str], 
         mainpbar: Optional[tqdm], 
         captureoutput: bool = True,
-        printoutput: bool = True
+        printoutput: bool = True,
+        printsuccess: bool = True
         ) -> Optional[CompletedProcess[bytes]]:
     '''runs command without progressbar'''
     if len(cmd) < 1:
@@ -54,7 +55,9 @@ def runcmdwithoutprogress(
         elif len(outputstr) < 200:  # short messages
             info(f"    i {Fore.BLACK}{outputstr}", mainpbar)
 
-    success("  ✓ completed successfully", mainpbar)
+    if printsuccess:
+        success("  ✓ completed successfully", mainpbar)
+
     return result
 
 def runcmd(
@@ -342,9 +345,11 @@ def main() -> None:
         if args.pull or args.norebase:
             info(f"\n{Style.BRIGHT}showing pull changes{Style.RESET_ALL}", progressbar)
             diffcmd: List[str] = getpulldiffcommand()
-            diffresult = runcmdwithoutprogress(diffcmd, progressbar, captureoutput=True, printoutput=False)
+            diffresult = runcmdwithoutprogress(diffcmd, progressbar, captureoutput=True, printoutput=False, printsuccess=False)
             if diffresult:
                 printoutput(result=diffresult, flags=args, pbar=progressbar, mainpbar=None)
+                success("  ✓ changes shown", progressbar)
+
             progressbar.update(1)
             completedsteps += 1
 

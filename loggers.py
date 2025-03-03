@@ -56,6 +56,38 @@ def printsteps(steps: List[str]) -> None:
         print(f"  {Fore.BLUE}{i}.{Style.RESET_ALL} {Fore.BLACK}{step}{Style.RESET_ALL}")
     print()
 
+def printdiff(outputstr: str, pbar: tqdm) -> None:
+    additions = 0
+    deletions = 0
+    files = []
+    
+    # process git output
+    for line in outputstr.split('\n'):
+        if not line:
+            continue
+        parts = line.split('\t')
+        if len(parts) >= 3:
+            add = int(parts[0]) if parts[0].isdigit() else 0
+            rem = int(parts[1]) if parts[1].isdigit() else 0
+            fname = parts[2]
+            files.append((fname, add, rem))
+            additions += add
+            deletions += rem
+    
+    # print formatted text
+    for fname, add, rem in files:
+        info(f"    {Style.BRIGHT}{fname}{Style.RESET_ALL}", pbar=pbar)
+        if add > 0:
+            info(f"      {Fore.GREEN}+++ {add} additions{Style.RESET_ALL}", pbar=pbar)
+        if rem > 0:
+            info(f"      {Fore.RED}--- {rem} deletions{Style.RESET_ALL}", pbar=pbar)
+    
+    # print summary
+    info(f"\n    {Fore.CYAN}total: {len(files)} files changed", pbar=pbar)
+    info(f"    {Fore.GREEN}{additions} insertions(+){Style.RESET_ALL}", pbar=pbar)
+    info(f"    {Fore.RED}{deletions} deletions(-){Style.RESET_ALL}", pbar=pbar)
+    return
+
 def printoutput(
         result: CompletedProcess[bytes], 
         flags: Namespace, 
@@ -66,14 +98,7 @@ def printoutput(
     outputstr: str = result.stdout.decode('utf-8', errors='replace').strip()
 
     if 'diff' in list2cmdline(result.args):
-        for line in outputstr.split('\n'):
-            if '+' in line:
-                pbar.write(f"{Fore.GREEN}{line}{Style.RESET_ALL}")
-            elif '-' in line:
-                pbar.write(f"{Fore.MAGENTA}{line}{Style.RESET_ALL}")
-            else:
-                pbar.write(line)
-        return
+        printdiff(outputstr=outputstr, pbar=pbar)
     
     pbar.n = 80
     pbar.refresh()
