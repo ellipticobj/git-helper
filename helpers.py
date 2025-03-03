@@ -1,9 +1,7 @@
 from sys import exit
 from tqdm import tqdm
-from time import sleep
 from typing import List, Tuple
 from loggers import error, info
-from colorama import Fore, Style
 from argparse import ArgumentParser, _ArgumentGroup, Namespace
 
 def completebar(pbar: tqdm, totalsteps: int) -> None:
@@ -11,25 +9,6 @@ def completebar(pbar: tqdm, totalsteps: int) -> None:
     pbar.n = totalsteps
     pbar.colour = 'green'
     pbar.refresh()
-
-def progressbar(
-        total: int, 
-        description: str, 
-        position: int, 
-        leave: bool, 
-        duration: float = 0.5
-        ) -> None:
-    '''default progress bar'''
-    with tqdm(
-            total=total, 
-            desc=f"{Fore.CYAN}{description}{Style.RESET_ALL}", 
-            bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}', 
-            position=position, 
-            leave=leave
-            ) as pbar:
-        for _ in range(100):
-            sleep(duration / total)
-            pbar.update(1)
 
 def validateargs(args: Namespace) -> None:
     '''validate argument combinations'''
@@ -125,12 +104,7 @@ def _getpullcommand(args: Namespace) -> List[str]:
     pullargs: List[str] = ["git", "pull"]
     if args.norebase:
         pullargs.append("--no-rebase")
-    if args.pull or args.norebase:
-        if hasattr(args, 'mainpbar'): # checks of the main bar exists
-            return pullargs
-        else:
-            return pullargs
-    return []
+    return pullargs
 
 def getpushcommand(args: Namespace) -> List[str]:
     '''adds flags to the push command'''
@@ -138,18 +112,14 @@ def getpushcommand(args: Namespace) -> List[str]:
         push: List[str] = ["git", "push"]
         if args.tags:
             push.append("--tags")
-
         if args.upstream:
             push = parseupstreamargs(args, push)
-
         if args.force:
             push.append("--force")
-
         if args.quiet:
             push.append("--quiet")
         elif args.verbose:
             push.append("--verbose")
-
         return push
     return []
 
@@ -160,7 +130,7 @@ def getstatuscommand(
     '''gets command for git status check'''
     # status check
     if args.status:
-        info(f"{Style.BRIGHT}status check{Style.RESET_ALL}", progressbar)
+        info(f"{args.__class__.__name__} status check", progressbar)
         cmd: List[str] = ["git", "status"]
         progressbar.update(1)
         return 1, cmd
@@ -172,7 +142,7 @@ def getsubmoduleupdatecommand(
         ) -> Tuple[int, List[str]]:
     '''gets command for submodule update'''
     if args.updatesubmodules:
-        info(f"\n{Style.BRIGHT}updating submodules{Style.RESET_ALL}", progressbar)
+        info("\nupdating submodules", progressbar)
         cmd: List[str] = ["git", "submodule", "update", "--init", "--recursive"]
         progressbar.update(1)
         return 1, cmd
@@ -184,7 +154,7 @@ def getstashcommand(
         ) -> Tuple[int, List[str]]:
     '''gets command for git stash'''
     if args.stash:
-        info(f"\n{Style.BRIGHT}stashing changes{Style.RESET_ALL}", progressbar)
+        info("\nstashing changes", progressbar)
         cmd: List[str] = ["git", "stash"]
         progressbar.update(1)
         return 1, cmd
@@ -196,9 +166,8 @@ def getpullcommand(
         ) -> Tuple[int, List[str]]:
     '''gets command for git pull'''
     if args.pull or args.norebase:
-        info(f"\n{Style.BRIGHT}pulling from remote{Style.RESET_ALL}",progressbar)
-        # create a copy of args with the progress bar added
-        args.mainpbar = progressbar
+        info("\npulling from remote", progressbar)
+        args.mainpbar = progressbar  # attach progress bar to args (if needed)
         progressbar.update(1)
         return 1, _getpullcommand(args)
     return 0, []
@@ -208,7 +177,7 @@ def getstagecommand(
         progressbar: tqdm
         ) -> List[str]:
     '''gets command for git add'''
-    info(f"\n{Style.BRIGHT}staging changes{Style.RESET_ALL}", progressbar)
+    info("\nstaging changes", progressbar)
     cmd: List[str] = ["git", "add", *args.add] if args.add else ["git", "add", "."]
     if args.verbose and not args.quiet:
         cmd.append("--verbose")
@@ -221,7 +190,7 @@ def getdiffcommand(
         ) -> Tuple[int, List[str]]:
     '''gets command for git diff'''
     if args.diff:
-        info(f"\n{Style.BRIGHT}showing diff{Style.RESET_ALL}", progressbar)
+        info("\nshowing diff", progressbar)
         cmd: List[str] = ["git", "diff", "--staged"]
         return 1, cmd
     return 0, []
@@ -231,7 +200,7 @@ def getcommitcommand(
         progressbar: tqdm
         ) -> List[str]:
     '''gets command for git commit'''
-    info(f"\n{Style.BRIGHT}committing{Style.RESET_ALL}", progressbar)
+    info("\ncommitting", progressbar)
     cmd: List[str] = _getcommitcommand(args)
     progressbar.update(1)
     return cmd

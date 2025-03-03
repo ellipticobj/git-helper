@@ -1,8 +1,8 @@
 from sys import stdout
 from time import sleep, time
-from typing import List, Tuple, TypeAlias
 from colorama import Fore, Style
 from threading import Event, Thread
+from typing import List, Tuple, TypeAlias
 
 '''
 loading animations
@@ -69,5 +69,5 @@ def unthreadedloadinganimation(
         frame = (frame + 1) % len(frames)
     
     # clear the line
-    stdout.write(f'\r {len(formatted_message)*2}\r')
+    stdout.write('\r\x1b[2K\r')
     stdout.flush()

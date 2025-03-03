@@ -19,9 +19,9 @@ def success(message: str, pbar: Optional[tqdm] = None) -> None:
 def error(message: str, pbar: Optional[tqdm] = None) -> None:
     '''print error message'''
     if pbar:
-        pbar.write(f"{Fore.RED}{Style.BRIGHT}{message}")
+        pbar.write(f"{Fore.MAGENTA}{Style.BRIGHT}{message}")
     else:
-        print(f"{Fore.RED}{Style.BRIGHT}{message}")
+        print(f"{Fore.MAGENTA}{Style.BRIGHT}{message}")
 
 def info(message: str, pbar: Optional[tqdm] = None) -> None:
     '''print info message'''
@@ -33,9 +33,9 @@ def info(message: str, pbar: Optional[tqdm] = None) -> None:
 def warning(message: str, pbar: Optional[tqdm] = None) -> None:
     '''print warning message'''
     if pbar:
-        pbar.write(f"{Fore.YELLOW}{Style.BRIGHT}{message}")
+        pbar.write(f"{Fore.YELLOW}{Style.DIM}{message}")
     else:
-        print(f"{Fore.YELLOW}{Style.BRIGHT}{message}")
+        print(f"{Fore.YELLOW}{Style.DIM}{message}")
 
 def printcmd(cmd: str, pbar: Optional[tqdm] = None) -> None:
     '''prints a command'''
@@ -81,12 +81,11 @@ def printdiff(outputstr: str, pbar: tqdm) -> None:
             info(f"      {Fore.GREEN}+++ {add} additions{Style.RESET_ALL}", pbar=pbar)
         if rem > 0:
             info(f"      {Fore.RED}--- {rem} deletions{Style.RESET_ALL}", pbar=pbar)
-    
+
     # print summary
     info(f"\n    {Fore.CYAN}total: {len(files)} files changed", pbar=pbar)
     info(f"    {Fore.GREEN}{additions} insertions(+){Style.RESET_ALL}", pbar=pbar)
     info(f"    {Fore.RED}{deletions} deletions(-){Style.RESET_ALL}", pbar=pbar)
-    return
 
 def printoutput(
         result: CompletedProcess[bytes], 
@@ -99,6 +98,7 @@ def printoutput(
 
     if 'diff' in list2cmdline(result.args):
         printdiff(outputstr=outputstr, pbar=pbar)
+        return
     
     pbar.n = 80
     pbar.refresh()
@@ -132,12 +132,12 @@ def formatcommit(
         message: str
         ) -> str:
     '''formats commit for output'''
-    return f"""
-    {Fore.YELLOW}commit {commit_hash}{Style.RESET_ALL}
-    author: {Fore.CYAN}{author}{Style.RESET_ALL}
-    date:   {date}
-    message: 
-        {Fore.GREEN}{message}{Style.RESET_ALL}"""
+    return (
+        f"\n    {Fore.YELLOW}commit {commit_hash}{Style.RESET_ALL}\n"
+        f"    author: {Fore.CYAN}{author}{Style.RESET_ALL}\n"
+        f"    date:   {date}\n"
+        f"    message:\n        {Fore.GREEN}{message}{Style.RESET_ALL}"
+    )
 
 def showcommitresult(
         result: CompletedProcess[bytes], 
@@ -169,6 +169,5 @@ def showresult(
         ) -> None:
     '''displays normal results'''
     if result.returncode == 0:
-        out: List[str] = result.stdout.decode().split("\n")
-        for line in out:
+        for line in result.stdout.decode().split("\n"):
             info(f"    i {Fore.CYAN}{line}", mainpbar)

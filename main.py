@@ -8,12 +8,12 @@ from loaders import startloadinganimation, stoploadinganimation, ThreadEventTupl
 from subprocess import list2cmdline, run as runsubprocess, CompletedProcess, CalledProcessError
 from loggers import success, error, info, printcmd, printinfo, printsteps, printoutput, showcommitresult
 from helpers import completebar, initcommands, validateargs, getpushcommand, getstatuscommand, getsubmoduleupdatecommand, \
-    getstashcommand, getpullcommand, getstagecommand, getdiffcommand, getcommitcommand, getgitcommands, getpulldiffcommand
+    getstashcommand, getpullcommand, getstagecommand, getdiffcommand, getcommitcommand, getpulldiffcommand
 
 # initialize colorama
 init(autoreset=True)
 
-VERSION: Final[str] = "0.2.5-preview2a"
+VERSION: Final[str] = "0.2.5-preview3"
 GITCOMMANDMESSAGES: Dict[str, str] = {
     'log': 'q to exit: ',
     'add': 'staging...',
@@ -25,6 +25,7 @@ GITCOMMANDMESSAGES: Dict[str, str] = {
     'status': 'checking repo status...'
 }
 KNOWNCMDS: List[str] = list(GITCOMMANDMESSAGES.keys())
+
 MinimalNamespace = Namespace(
     cont=False, 
     dry=False, 
@@ -41,11 +42,10 @@ def runcmdwithoutprogress(
         printsuccess: bool = True
         ) -> Optional[CompletedProcess[bytes]]:
     '''runs command without progressbar'''
-    if len(cmd) < 1:
+    if not cmd:
         return None
     
     result: CompletedProcess[bytes] = runsubprocess(cmd, check=True, cwd=getcwd(), capture_output=captureoutput)
-    # parse output
     outputstr: str = result.stdout.decode('utf-8', errors='replace').strip()
     if outputstr and printoutput:
         if 'Everything up-to-date' in outputstr:
@@ -54,40 +54,37 @@ def runcmdwithoutprogress(
             info(f"    i {Fore.CYAN}nothing to commit", mainpbar)
         elif len(outputstr) < 200:  # short messages
             info(f"    i {Fore.BLACK}{outputstr}", mainpbar)
-
     if printsuccess:
         success("  ✓ completed successfully", mainpbar)
-
     return result
 
 def runcmd(
         cmd: List[str], 
         flags: Namespace = MinimalNamespace, 
-        mainpbar: Optional[tqdm] = None, 
+        progressbar: Optional[tqdm] = None, 
         keepbar: bool = False, 
         captureoutput: bool = True
         ) -> Optional[CompletedProcess[bytes]]:
     '''executes a command with error handling'''
-    if len(cmd) < 1:  # if command is empty, exit immediately
+    if not cmd:  # if command is empty, exit immediately
         return None
 
-    interactive = cmd[0] == "git" and cmd[1] == "commit" and len(cmd) == 2
+    interactive = (cmd[0] == "git" and cmd[1] == "commit" and len(cmd) == 2)
     if interactive:
         # dont capture output for interactive commands so that git can use the terminal properly.
         captureoutput = False
-        if mainpbar:
-            mainpbar.clear()  # clear the main progress bar output
+        if progressbar:
+            progressbar.clear()  # clear the main progress bar output
 
-    cwd: str = getcwd()
+    currentdirectory: str = getcwd()
     cmdstr: str = list2cmdline(cmd)
-
     if flags.dry:
-        printcmd(cmdstr, mainpbar)
+        printcmd(cmdstr, progressbar)
         return None
 
     try:
-        info("    running command:", mainpbar)
-        printcmd(f"      $ {cmdstr}", mainpbar)
+        info("    running command:", progressbar)
+        printcmd(f"      $ {cmdstr}", progressbar)
         cmdargs: List[str] = cmd.copy()
         result: Optional[CompletedProcess[bytes]] = None
 
@@ -97,15 +94,15 @@ def runcmd(
             return result
 
         if interactive: # run the interactive command without mrrping progress bar
-            result = runsubprocess(cmdargs, check=True, cwd=cwd, capture_output=captureoutput)
-            if result and mainpbar: # use the passed mainpbar for any output display
-                printoutput(result, flags, mainpbar, mainpbar)
+            result = runsubprocess(cmdargs, check=True, cwd=currentdirectory, capture_output=captureoutput)
+            if result and progressbar: # use the passed mainpbar for any output display
+                printoutput(result, flags, progressbar, progressbar)
             return result
         
         # show a per command progress bar and loader
-        basecmd = cmd[1] if len(cmd) > 1 else ''
-        defaultcmd = f"executing {cmdstr}..."
-        animationmessage: str = GITCOMMANDMESSAGES.get(basecmd, defaultcmd)
+        basecmd: str = cmd[1] if len(cmd) > 1 else ''
+        defaultmsg: str = f"executing {cmdstr}..."
+        loadingmsg: str = GITCOMMANDMESSAGES.get(basecmd, defaultmsg)
 
         with tqdm(
             total=100, 
@@ -115,203 +112,76 @@ def runcmd(
             leave=keepbar
         ) as pbar:
             pbar.update(10)
-            animation = startloadinganimation(animationmessage)
-            result = runsubprocess(cmdargs, check=True, cwd=cwd, capture_output=captureoutput)
+            animation = startloadinganimation(loadingmsg)
+            result = runsubprocess(cmdargs, check=True, cwd=currentdirectory, capture_output=captureoutput)
             pbar.n = 50
             pbar.refresh()
 
             stoploadinganimation(animation)
             if result:
-                printoutput(result, flags, pbar, mainpbar)
+                printoutput(result, flags, pbar, progressbar)
 
             pbar.n = 100
             pbar.colour = 'green'
             pbar.refresh()
-            success("    ✓ completed successfully", mainpbar)
+            success("    ✓ completed successfully", progressbar)
             return result
     except CalledProcessError as e:
         # update the main progress bar to red before exiting.
-        if mainpbar is not None:
-            mainpbar.colour = 'magenta'
-            mainpbar.refresh()
+        if progressbar is not None:
+            progressbar.colour = 'magenta'
+            progressbar.refresh()
         
-        error(f"\n❌ command failed with exit code {e.returncode}:", mainpbar)
-        printcmd(f"  $ {cmdstr}", mainpbar)
+        error(f"\n❌ command failed with exit code {e.returncode}:", progressbar)
+        printcmd(f"  $ {cmdstr}", progressbar)
         if e.stdout:
-            info(f"{Fore.BLACK}{e.stdout.decode('utf-8', errors='replace')}", mainpbar)
+            info(f"{Fore.BLACK}{e.stdout.decode('utf-8', errors='replace')}", progressbar)
         if e.stderr:
-            error(f"{Fore.RED}{e.stderr.decode('utf-8', errors='replace')}", mainpbar)
+            error(f"{Fore.RED}{e.stderr.decode('utf-8', errors='replace')}", progressbar)
 
         if not flags.cont:
             exit(e.returncode)
         else:
-            info(f"{Fore.CYAN}continuing...", mainpbar)
+            info(f"{Fore.CYAN}continuing...", progressbar)
         return None
     except KeyboardInterrupt:
-        error(f"{Fore.CYAN}user interrupted", mainpbar)
-        return None
-
-def checkargv(
-        args: List[str], 
-        parser: ArgumentParser
-        ) -> None:
-    '''checks sys.argv before flags are parsed'''
-    if len(args) == 1: # prints help if user runs `meow`
-        parser.print_help()
-        print(f"\ncurrent directory: {Style.BRIGHT}{getcwd()}")
-        exit(1)
-    elif len(args) > 1:
-        if len(args) == 2 and args[1] == "meow":
-            print(f"{Fore.MAGENTA}{Style.BRIGHT}meow meow :3{Style.RESET_ALL}")
-            exit(0)
-        elif args[1] in KNOWNCMDS:
-            handlegitcommands(args)
-    return None
-
-def handlegitcommands(args: List[str]) -> None:
-    '''parses meow <cmd> commands'''
-    gitcommand = args[1]
-    commandarguments: List[str] = args[2:]
-    precmd: List[str]
-    cmd: List[str]
-    cmdstr: str
-    # preresult: Optional[CompletedProcess[bytes]]
-    result: Optional[CompletedProcess[bytes]]
-
-    try:
-        cmd = ["git", "log"] + commandarguments
-        cmdstr = list2cmdline(cmd)
-        if gitcommand == "log":
-            result = runsubprocess(cmd, check=False)
-            exit(result.returncode)
-
-        # minimal progress bar for git commands
-        with tqdm(
-            total=100, 
-            desc=f"{Fore.CYAN}mrrping...{Style.RESET_ALL}", 
-            bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}', 
-            position=0, 
-            leave=True
-        ) as mainpbar:
-            
-            mainpbar.update(10)
-            
-            animation: Optional[ThreadEventTuple] = None
-            if not (gitcommand == "commit" and not commandarguments):
-                animation = startloadinganimation(GITCOMMANDMESSAGES.get(gitcommand, "processing..."))
-            
-            precmd, cmd = getgitcommands(gitcommand, commandarguments)
-            cmdstr = list2cmdline(cmd)
-
-            runcmd(
-                cmd=precmd, 
-                captureoutput=(gitcommand != "log"),  # dont capture output for log
-                mainpbar=mainpbar
-            )
-
-            info(message="", pbar=mainpbar)
-
-            result = runcmd(
-                cmd=cmd, 
-                captureoutput=(gitcommand != "log"),  # dont capture output for log
-                mainpbar=mainpbar
-            )
-            
-            if animation:
-                stoploadinganimation(animation)
-            mainpbar.update(100)
-
-            if gitcommand == "commit":
-                if result:
-                    showcommitresult(result=result, mainpbar=mainpbar)
-            
-            mainpbar.n = 100
-            mainpbar.refresh()
-        
-        # exit after handling command
-        exit_code = 0 if result and result.returncode == 0 else 1
-        exit(exit_code)
-    except CalledProcessError as e:
-        error(f"\n❌ command failed with exit code {e.returncode}:")
-        printcmd(f"  $ {cmdstr}")
-        if e.stdout:
-            info(f"{Fore.BLACK}{e.stdout.decode('utf-8', errors='replace')}")
-        if e.stderr:
-            error(f"{Fore.RED}{e.stderr.decode('utf-8', errors='replace')}")
-
-        exit(e.returncode)
-        return None
-    except KeyboardInterrupt:
-        error(f"{Fore.CYAN}user interrupted")
+        error(f"{Fore.CYAN}user interrupted", progressbar)
         return None
 
 def getsteps(args: Namespace) -> List[str]:
+    '''gets the commands the program has to complete'''
     steps: List[str] = []
-
     if args.status:
         steps.append("status check")
-
     if args.updatesubmodules:
         steps.append("update submodules")
-
     if args.stash:
         steps.append("stash changes")
-
     if args.pull or args.norebase:
         steps.append("pull from remote")
         steps.append("show changes")
-
     steps.append("stage changes")
-
     if args.diff:
         steps.append("show diff")
-
     steps.append("commit changes")
-
     if not args.nopush:
         steps.append("push to remote")
-
     return steps
 
-def main() -> None:
-    # init
-    parser: ArgumentParser = ArgumentParser(
-        prog="meow",
-        epilog=f"{Fore.MAGENTA}{Style.BRIGHT}meow {Style.RESET_ALL}{Fore.CYAN}v{VERSION}{Style.RESET_ALL}"
-    )
-    initcommands(parser)
-
-    # check argv before parsing args
-    checkargv(argv, parser)
-
-    # get args
-    args: Namespace = parser.parse_args()
-
-    # fancy header
+def displayheader() -> None:
+    '''displays header'''
     print(f"{Fore.MAGENTA}{Style.BRIGHT}meow {Style.RESET_ALL}{Fore.CYAN}v{VERSION}{Style.RESET_ALL}")
-
     print(f"\ncurrent directory: {Style.BRIGHT}{getcwd()}\n")
 
-    if args.dry:
-        print(f"\n{Fore.MAGENTA}{Style.BRIGHT}dry run{Style.RESET_ALL}")
-
-    if args.version:
-        printinfo(VERSION)
-
-    validateargs(args)
-
-    preparinganimation: ThreadEventTuple = startloadinganimation("preparing...")
-
-    # display pipeline steps
-    steps: List[str] = getsteps(args)
-
-    stoploadinganimation(preparinganimation)
-    del preparinganimation
-
-    # show pipeline overview
+def displaysteps(steps: List[str]) -> None:
+    '''displays the steps'''
     print(f"\n{Fore.CYAN}{Style.BRIGHT}meows to meow:{Style.RESET_ALL}")
-
     printsteps(steps)
+
+def runpipeline(args: Namespace) -> None:
+    # show pipeline overview
+    steps = getsteps(args)
+    displaysteps(steps)
 
     # execute pipeline
     with tqdm(total=len(steps), desc=f"{Fore.RED}meowing...{Style.RESET_ALL}", bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}', position=0, leave=True) as progressbar:
@@ -327,18 +197,18 @@ def main() -> None:
         
         # update submodules
         toadd, cmd = getsubmoduleupdatecommand(args, progressbar)
-        runcmd(cmd=cmd, flags=args, mainpbar=progressbar)
+        runcmd(cmd=cmd, flags=args, progressbar=progressbar)
         completedsteps += toadd
 
         # stash
         toadd, cmd = getstashcommand(args, progressbar)
-        runcmd(cmd=cmd, flags=args, mainpbar=progressbar)
+        runcmd(cmd=cmd, flags=args, progressbar=progressbar)
         completedsteps += toadd
 
         # pull
         toadd, cmd = getpullcommand(args, progressbar)
         # pullresult: Optional[CompletedProcess[bytes]] = 
-        runcmd(cmd=cmd, flags=args, mainpbar=progressbar)
+        runcmd(cmd=cmd, flags=args, progressbar=progressbar)
         completedsteps += 1
         info(message="", pbar=progressbar)
 
@@ -355,7 +225,7 @@ def main() -> None:
 
         # add
         cmd = getstagecommand(args, progressbar)
-        runcmd(cmd=cmd, flags=args, mainpbar=progressbar)
+        runcmd(cmd=cmd, flags=args, progressbar=progressbar)
         completedsteps += 1
 
         # diff
@@ -365,23 +235,73 @@ def main() -> None:
 
         # commit
         cmd = getcommitcommand(args, progressbar)
-        commitresult: Optional[CompletedProcess[bytes]] = runcmd(cmd, args, mainpbar=progressbar)
+        commitresult: Optional[CompletedProcess[bytes]] = runcmd(cmd, args, progressbar=progressbar)
         completedsteps += 1
         info(message="", pbar=progressbar)
 
         if commitresult and commitresult.returncode == 0:
             showcmd: List[str] = ["git", "show", "-s", "--pretty=format:%H|%an|%ad|%s"]
-            showresult = runcmd(showcmd, args, mainpbar=progressbar)
+            showresult = runcmd(showcmd, args, progressbar=progressbar)
             if showresult and showresult.returncode == 0:
                 showcommitresult(showresult, progressbar)
 
         cmd = getpushcommand(args)
         info(f"\n{Style.BRIGHT}pushing to remote{Style.RESET_ALL}", progressbar)
-        runcmd(cmd, args, mainpbar=progressbar)
+        runcmd(cmd, args, progressbar=progressbar)
         progressbar.update(1)
         completedsteps += 1
 
         completebar(progressbar, totalsteps)
+
+def checkargv(
+        args: List[str], 
+        parser: ArgumentParser
+        ) -> None:
+    '''checks sys.argv before flags are parsed'''
+    if len(args) == 1: # prints help if user runs `meow`
+        parser.print_help()
+        print(f"\ncurrent directory: {Style.BRIGHT}{getcwd()}")
+        exit(1)
+    elif len(args) > 1:
+        if len(args) == 2 and args[1] == "meow":
+            print(f"{Fore.MAGENTA}{Style.BRIGHT}meow meow :3{Style.RESET_ALL}")
+            exit(0)
+        elif args[1] in KNOWNCMDS:
+            from githandler import handlegitcommands
+            handlegitcommands(args)
+    return None
+def main() -> None:
+    '''entry point'''
+    # init
+    parser: ArgumentParser = ArgumentParser(
+        prog="meow",
+        epilog=f"{Fore.MAGENTA}{Style.BRIGHT}meow {Style.RESET_ALL}{Fore.CYAN}v{VERSION}{Style.RESET_ALL}"
+    )
+    initcommands(parser)
+
+    # check argv before parsing args
+    checkargv(argv, parser)
+
+    # get args
+    args: Namespace = parser.parse_args()
+
+    # fancy header
+    displayheader()
+
+    if args.dry:
+        print(f"\n{Fore.MAGENTA}{Style.BRIGHT}dry run{Style.RESET_ALL}")
+
+    if args.version:
+        printinfo(VERSION)
+
+    validateargs(args)
+
+    preparinganimation: ThreadEventTuple = startloadinganimation("preparing...")
+
+    stoploadinganimation(preparinganimation)
+    del preparinganimation
+
+    runpipeline(args=args)
 
     # success message
     print("\n😺")
