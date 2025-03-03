@@ -36,7 +36,8 @@ MinimalNamespace = Namespace(
 def runcmdwithoutprogress(
         cmd: List[str], 
         mainpbar: Optional[tqdm], 
-        captureoutput: bool = True
+        captureoutput: bool = True,
+        printoutput: bool = True
         ) -> Optional[CompletedProcess[bytes]]:
     '''runs command without progressbar'''
     if len(cmd) < 1:
@@ -45,7 +46,7 @@ def runcmdwithoutprogress(
     result: CompletedProcess[bytes] = runsubprocess(cmd, check=True, cwd=getcwd(), capture_output=captureoutput)
     # parse output
     outputstr: str = result.stdout.decode('utf-8', errors='replace').strip()
-    if outputstr:
+    if outputstr and printoutput:
         if 'Everything up-to-date' in outputstr:
             info(f"    i {Fore.CYAN}everything up to date", mainpbar)
         elif 'nothing to commit' in outputstr:
@@ -341,7 +342,7 @@ def main() -> None:
         if args.pull or args.norebase:
             info(f"\n{Style.BRIGHT}showing pull changes{Style.RESET_ALL}", progressbar)
             diffcmd: List[str] = getpulldiffcommand()
-            diffresult = runcmdwithoutprogress(diffcmd, progressbar, captureoutput=True)
+            diffresult = runcmdwithoutprogress(diffcmd, progressbar, captureoutput=True, printoutput=False)
             if diffresult:
                 printoutput(result=diffresult, flags=args, pbar=progressbar, mainpbar=None)
             progressbar.update(1)
@@ -349,7 +350,6 @@ def main() -> None:
 
         # add
         cmd = getstagecommand(args, progressbar)
-        print(cmd)
         runcmd(cmd=cmd, flags=args, mainpbar=progressbar)
         completedsteps += 1
 
