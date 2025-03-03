@@ -99,9 +99,8 @@ def formatcommit(
     {Fore.YELLOW}commit {commit_hash}{Style.RESET_ALL}
     author: {Fore.CYAN}{author}{Style.RESET_ALL}
     date:   {date}
-
-        {Fore.GREEN}{message}{Style.RESET_ALL}
-    """
+    message: 
+        {Fore.GREEN}{message}{Style.RESET_ALL}"""
 
 def showcommitresult(
         result: CompletedProcess[bytes], 

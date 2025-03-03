@@ -351,7 +351,7 @@ def main() -> None:
         cmd = getcommitcommand(args, progressbar)
         commitresult: Optional[CompletedProcess[bytes]] = runcmd(cmd, args, mainpbar=progressbar)
         completedsteps += 1
-
+        info(message="", pbar=progressbar)
         if commitresult and commitresult.returncode == 0:
             showcmd = ["git", "show", "-s", "--pretty=format:%H|%an|%ad|%s"]
             showresult = runcmd(showcmd, args, mainpbar=progressbar)
