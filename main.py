@@ -3,29 +3,28 @@ from tqdm import tqdm
 from sys import exit, argv
 from colorama import init, Fore, Style
 from argparse import ArgumentParser, Namespace
-from typing import List, Optional, Final
+from typing import List, Optional, Final, Dict
 from loaders import startloadinganimation, stoploadinganimation, ThreadEventTuple
 from subprocess import list2cmdline, run as runsubprocess, CompletedProcess, CalledProcessError
 from loggers import success, error, info, printcmd, printinfo, printsteps, printoutput, showcommitresult
-from helpers import completebar, initcommands, validateargs, getpushcommand, getstatuscommand, getsubmoduleupdatecommand, getstashcommand, getpullcommand, getstagecommand, getdiffcommand, getcommitcommand, getgitcommands
-
-# TODO: fix funky error that appears at the end of some args
-# TODO: print out something before running command when using gitcommands
+from helpers import completebar, initcommands, validateargs, getpushcommand, getstatuscommand, getsubmoduleupdatecommand, \
+    getstashcommand, getpullcommand, getstagecommand, getdiffcommand, getcommitcommand, getgitcommands, getpulldiffcommand
 
 # initialize colorama
 init(autoreset=True)
 
-GITCOMMANDMESSAGES = {
+VERSION: Final[str] = "0.2.5-preview2a"
+GITCOMMANDMESSAGES: Dict[str, str] = {
     'log': 'q to exit: ',
-    'commit': 'committing...',
     'add': 'staging...',
     'push': 'pushing...',
     'pull': 'pulling...',
     'clone': 'cloning...',
+    'fetch': 'fetching...',
+    'commit': 'committing...',
     'status': 'checking repo status...'
 }
-KNOWNCMDS: List[str] = ['push', 'pull', 'commit', 'add', 'log', 'clone']
-VERSION: Final[str] = "0.2.5-preview2"
+KNOWNCMDS: List[str] = list(GITCOMMANDMESSAGES.keys())
 MinimalNamespace = Namespace(
     cont=False, 
     dry=False, 
@@ -83,8 +82,8 @@ def runcmd(
         return None
 
     try:
-        info("  running command:", mainpbar)
-        printcmd(f"    $ {cmdstr}", mainpbar)
+        info("    running command:", mainpbar)
+        printcmd(f"      $ {cmdstr}", mainpbar)
         cmdargs: List[str] = cmd.copy()
         result: Optional[CompletedProcess[bytes]] = None
 
@@ -124,7 +123,7 @@ def runcmd(
             pbar.n = 100
             pbar.colour = 'green'
             pbar.refresh()
-            success("  ✓ completed successfully", mainpbar)
+            success("    ✓ completed successfully", mainpbar)
             return result
     except CalledProcessError as e:
         # update the main progress bar to red before exiting.
@@ -256,6 +255,7 @@ def getsteps(args: Namespace) -> List[str]:
 
     if args.pull or args.norebase:
         steps.append("pull from remote")
+        steps.append("show changes")
 
     steps.append("stage changes")
 
@@ -275,25 +275,18 @@ def main() -> None:
         prog="meow",
         epilog=f"{Fore.MAGENTA}{Style.BRIGHT}meow {Style.RESET_ALL}{Fore.CYAN}v{VERSION}{Style.RESET_ALL}"
     )
+    initcommands(parser)
 
     # check argv before parsing args
     checkargv(argv, parser)
 
-    # start animatior before initialization
-    initializinganimation: ThreadEventTuple = startloadinganimation("initializing...")
-    initcommands(parser)
-
     # get args
     args: Namespace = parser.parse_args()
-
-    # stop the animation after initialization
-    stoploadinganimation(initializinganimation)
-    del initializinganimation
 
     # fancy header
     print(f"{Fore.MAGENTA}{Style.BRIGHT}meow {Style.RESET_ALL}{Fore.CYAN}v{VERSION}{Style.RESET_ALL}")
 
-    print(f"\ncurrent directory: {Style.BRIGHT}{getcwd()}")
+    print(f"\ncurrent directory: {Style.BRIGHT}{getcwd()}\n")
 
     if args.dry:
         print(f"\n{Fore.MAGENTA}{Style.BRIGHT}dry run{Style.RESET_ALL}")
@@ -317,43 +310,62 @@ def main() -> None:
     printsteps(steps)
 
     # execute pipeline
-    with tqdm(total=len(steps), desc=f"{Fore.MAGENTA}meowing...{Style.RESET_ALL}", bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}', position=0, leave=True) as progressbar:
+    with tqdm(total=len(steps), desc=f"{Fore.RED}meowing...{Style.RESET_ALL}", bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}', position=0, leave=True) as progressbar:
         completedsteps: int = 0
         totalsteps: int = len(steps)
         toadd: int
         cmd: List[str]
 
+        # status
         toadd, cmd = getstatuscommand(args, progressbar)
         runcmdwithoutprogress(cmd=cmd, mainpbar=progressbar)
         completedsteps += toadd
-
+        
+        # update submodules
         toadd, cmd = getsubmoduleupdatecommand(args, progressbar)
         runcmd(cmd=cmd, flags=args, mainpbar=progressbar)
         completedsteps += toadd
 
+        # stash
         toadd, cmd = getstashcommand(args, progressbar)
         runcmd(cmd=cmd, flags=args, mainpbar=progressbar)
         completedsteps += toadd
 
+        # pull
         toadd, cmd = getpullcommand(args, progressbar)
+        # pullresult: Optional[CompletedProcess[bytes]] = 
         runcmd(cmd=cmd, flags=args, mainpbar=progressbar)
         completedsteps += 1
+        info(message="", pbar=progressbar)
 
+        if args.pull or args.norebase:
+            info(f"\n{Style.BRIGHT}showing pull changes{Style.RESET_ALL}", progressbar)
+            diffcmd: List[str] = getpulldiffcommand()
+            diffresult = runcmdwithoutprogress(diffcmd, progressbar, captureoutput=True)
+            if diffresult:
+                printoutput(result=diffresult, flags=args, pbar=progressbar, mainpbar=None)
+            progressbar.update(1)
+            completedsteps += 1
+
+        # add
         cmd = getstagecommand(args, progressbar)
         print(cmd)
         runcmd(cmd=cmd, flags=args, mainpbar=progressbar)
         completedsteps += 1
 
+        # diff
         toadd, cmd = getdiffcommand(args, progressbar)
         runcmdwithoutprogress(cmd=cmd, mainpbar=progressbar)
         completedsteps += toadd
 
+        # commit
         cmd = getcommitcommand(args, progressbar)
         commitresult: Optional[CompletedProcess[bytes]] = runcmd(cmd, args, mainpbar=progressbar)
         completedsteps += 1
         info(message="", pbar=progressbar)
+
         if commitresult and commitresult.returncode == 0:
-            showcmd = ["git", "show", "-s", "--pretty=format:%H|%an|%ad|%s"]
+            showcmd: List[str] = ["git", "show", "-s", "--pretty=format:%H|%an|%ad|%s"]
             showresult = runcmd(showcmd, args, mainpbar=progressbar)
             if showresult and showresult.returncode == 0:
                 showcommitresult(showresult, progressbar)

@@ -2,8 +2,8 @@ from sys import exit
 from tqdm import tqdm
 from argparse import Namespace
 from colorama import Fore, Style
-from subprocess import CompletedProcess
 from typing import Optional, List, NoReturn
+from subprocess import list2cmdline, CompletedProcess
 
 '''
 things that log
@@ -64,8 +64,20 @@ def printoutput(
         ) -> None:
     '''prints commands output'''
     outputstr: str = result.stdout.decode('utf-8', errors='replace').strip()
+
+    if 'diff' in list2cmdline(result.args):
+        for line in outputstr.split('\n'):
+            if '+' in line:
+                pbar.write(f"{Fore.GREEN}{line}{Style.RESET_ALL}")
+            elif '-' in line:
+                pbar.write(f"{Fore.MAGENTA}{line}{Style.RESET_ALL}")
+            else:
+                pbar.write(line)
+        return
+    
     pbar.n = 80
     pbar.refresh()
+
     if outputstr:
         if flags.verbose:
             # output everything
