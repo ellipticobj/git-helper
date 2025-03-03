@@ -6,9 +6,13 @@ from argparse import ArgumentParser, Namespace
 from typing import List, Optional, Final, Dict
 from loaders import startloadinganimation, stoploadinganimation, ThreadEventTuple
 from subprocess import list2cmdline, run as runsubprocess, CompletedProcess, CalledProcessError
-from loggers import success, error, info, printcmd, printinfo, printsteps, printoutput, showcommitresult
+from loggers import success, error, info, printcmd, printinfo, printoutput, showcommitresult, printsteps, printdiff
 from helpers import completebar, initcommands, validateargs, getpushcommand, getstatuscommand, getsubmoduleupdatecommand, \
     getstashcommand, getpullcommand, getstagecommand, getdiffcommand, getcommitcommand, getpulldiffcommand
+
+'''
+main entry point
+'''
 
 # initialize colorama
 init(autoreset=True)
@@ -213,11 +217,12 @@ def runpipeline(args: Namespace) -> None:
         info(message="", pbar=progressbar)
 
         if args.pull or args.norebase:
-            info(f"\n{Style.BRIGHT}showing pull changes{Style.RESET_ALL}", progressbar)
+            info("changes: ", progressbar)
             diffcmd: List[str] = getpulldiffcommand()
             diffresult = runcmdwithoutprogress(diffcmd, progressbar, captureoutput=True, printoutput=False, printsuccess=False)
             if diffresult:
-                printoutput(result=diffresult, flags=args, pbar=progressbar, mainpbar=None)
+                outputstr: str = diffresult.stdout.decode('utf-8', errors='replace').strip()
+                printdiff(outputstr=outputstr, pbar=progressbar)
                 success("  ✓ changes shown", progressbar)
 
             progressbar.update(1)
@@ -246,7 +251,7 @@ def runpipeline(args: Namespace) -> None:
                 showcommitresult(showresult, progressbar)
 
         cmd = getpushcommand(args)
-        info(f"\n{Style.BRIGHT}pushing to remote{Style.RESET_ALL}", progressbar)
+        info("pushing to remote", progressbar)
         runcmd(cmd, args, progressbar=progressbar)
         progressbar.update(1)
         completedsteps += 1
@@ -268,7 +273,7 @@ def checkargv(
             exit(0)
         elif args[1] in KNOWNCMDS:
             from githandler import handlegitcommands
-            handlegitcommands(args)
+            handlegitcommands(args, GITCOMMANDMESSAGES)
     return None
 def main() -> None:
     '''entry point'''
@@ -278,32 +283,23 @@ def main() -> None:
         epilog=f"{Fore.MAGENTA}{Style.BRIGHT}meow {Style.RESET_ALL}{Fore.CYAN}v{VERSION}{Style.RESET_ALL}"
     )
     initcommands(parser)
-
-    # check argv before parsing args
     checkargv(argv, parser)
-
-    # get args
     args: Namespace = parser.parse_args()
-
-    # fancy header
     displayheader()
 
     if args.dry:
         print(f"\n{Fore.MAGENTA}{Style.BRIGHT}dry run{Style.RESET_ALL}")
-
     if args.version:
         printinfo(VERSION)
 
     validateargs(args)
 
     preparinganimation: ThreadEventTuple = startloadinganimation("preparing...")
-
     stoploadinganimation(preparinganimation)
     del preparinganimation
 
     runpipeline(args=args)
 
-    # success message
     print("\n😺")
 
 if __name__ == "__main__":

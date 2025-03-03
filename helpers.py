@@ -4,6 +4,10 @@ from typing import List, Tuple
 from loggers import error, info
 from argparse import ArgumentParser, _ArgumentGroup, Namespace
 
+'''
+helpers
+'''
+
 def completebar(pbar: tqdm, totalsteps: int) -> None:
     '''fills up pbar and makes it green'''
     pbar.n = totalsteps

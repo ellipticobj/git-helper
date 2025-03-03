@@ -46,7 +46,6 @@ def stoploadinganimation(threadinfo: ThreadEventTuple) -> None:
     thread: Thread
     event: Event
     thread, event = threadinfo
-
     event.set()
     thread.join(timeout=0.2)  # wait for the thread to finish!!!!
     stdout.write('\r\x1b[2K\r') # use ansi codes to write the entire line to prevent artifacts

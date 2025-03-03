@@ -2,24 +2,17 @@ from sys import exit
 from os import getcwd
 from tqdm import tqdm
 from colorama import Fore, Style
-from typing import List, Optional
 from helpers import getgitcommands
+from typing import List, Optional, Dict
 from loggers import success, error, info, printcmd, showcommitresult
 from loaders import startloadinganimation, stoploadinganimation, ThreadEventTuple
 from subprocess import list2cmdline, run as runsubprocess, CalledProcessError, CompletedProcess
 
-GITCOMMANDMESSAGES = {
-    'log': 'q to exit: ',
-    'add': 'staging...',
-    'push': 'pushing...',
-    'pull': 'pulling...',
-    'clone': 'cloning...',
-    'fetch': 'fetching...',
-    'commit': 'committing...',
-    'status': 'checking repo status...'
-}
+'''
+handles meow <cmd>
+'''
 
-def handlegitcommands(args: List[str]) -> None:
+def handlegitcommands(args: List[str], messages: Dict[str, str]) -> None:
     '''handles meow <cmd> commands'''
     
     gitcommand = args[1]
@@ -43,7 +36,7 @@ def handlegitcommands(args: List[str]) -> None:
             animation: Optional[ThreadEventTuple] = None
 
             if not (gitcommand == "commit" and not commandarguments):
-                animation = startloadinganimation(getloadingmessage(gitcommand))
+                animation = startloadinganimation(getloadingmessage(gitcommand, messages))
             
             precmd, cmd = getgitcommands(gitcommand, commandarguments)
             lastcmdstr = list2cmdline(cmd)
@@ -73,8 +66,8 @@ def handlegitcommands(args: List[str]) -> None:
         error(f"{Fore.CYAN}user interrupted")
         exit(1)
 
-def getloadingmessage(gitcommand: str) -> str:
-    return GITCOMMANDMESSAGES.get(gitcommand, "processing...")
+def getloadingmessage(gitcommand: str, messages: Dict[str, str]) -> str:
+    return messages.get(gitcommand, "processing...")
 
 def runcmd(cmd: List[str], pbar) -> CompletedProcess:
     '''runs cmd'''

@@ -133,10 +133,10 @@ def formatcommit(
         ) -> str:
     '''formats commit for output'''
     return (
-        f"\n    {Fore.YELLOW}commit {commit_hash}{Style.RESET_ALL}\n"
-        f"    author: {Fore.CYAN}{author}{Style.RESET_ALL}\n"
-        f"    date:   {date}\n"
-        f"    message:\n        {Fore.GREEN}{message}{Style.RESET_ALL}"
+        f"\n      {Fore.YELLOW}commit {commit_hash}{Style.RESET_ALL}\n"
+        f"      author: {Fore.CYAN}{author}{Style.RESET_ALL}\n"
+        f"      date:   {date}\n"
+        f"      message:\n        {Fore.GREEN}{message}{Style.RESET_ALL}"
     )
 
 def showcommitresult(
