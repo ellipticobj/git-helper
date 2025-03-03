@@ -349,15 +349,14 @@ def main() -> None:
         completedsteps += toadd
 
         cmd = getcommitcommand(args, progressbar)
-        result: Optional[CompletedProcess[bytes]] = runcmd(cmd, args, mainpbar=progressbar)
+        commitresult: Optional[CompletedProcess[bytes]] = runcmd(cmd, args, mainpbar=progressbar)
         completedsteps += 1
 
-        if result:
-            if result.returncode == 0:
-                showcmd: List[str] = ["git", "show", "-s", "--pretty=format:%H|%an|%ad|%s"]
-                showresult: Optional[CompletedProcess[bytes]] = runcmd(showcmd, args, mainpbar=progressbar)
-                if showresult:
-                    showcommitresult(showresult, progressbar)
+        if commitresult and commitresult.returncode == 0:
+            showcmd = ["git", "show", "-s", "--pretty=format:%H|%an|%ad|%s"]
+            showresult = runcmd(showcmd, args, mainpbar=progressbar)
+            if showresult and showresult.returncode == 0:
+                showcommitresult(showresult, progressbar)
 
         cmd = getpushcommand(args)
         info(f"\n{Style.BRIGHT}pushing to remote{Style.RESET_ALL}", progressbar)

@@ -107,7 +107,10 @@ def showcommitresult(
         mainpbar: Optional[tqdm] = None
         ) -> None:
     '''displays formatted commit'''
-    if result.returncode == 0:
+    if result.returncode != 0:
+        return
+
+    try:
         output = result.stdout.decode()
         if '|' in output:
             parts = output.split('|')
@@ -120,6 +123,8 @@ def showcommitresult(
                 ), mainpbar)
         else:
             info(f"    i {Fore.CYAN}{output}", mainpbar)
+    except Exception as e:
+        error(f"error showing commit: {str(e)}", mainpbar)
 
 def showresult(
         result: CompletedProcess[bytes],
