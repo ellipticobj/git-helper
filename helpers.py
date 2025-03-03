@@ -232,8 +232,7 @@ def getcommitcommand(
         ) -> List[str]:
     '''gets command for git commit'''
     info(f"\n{Style.BRIGHT}committing{Style.RESET_ALL}", progressbar)
-    commitcmd: List[str] = _getcommitcommand(args)
-    cmd: List[str] = commitcmd + ["&&"] + ["git", "show", "-s", "--pretty=format:'%H|%an|%ad|%s'"]
+    cmd: List[str] = _getcommitcommand(args)
     progressbar.update(1)
     return cmd
 
