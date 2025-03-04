@@ -62,10 +62,10 @@ def initcommands(parser: ArgumentParser) -> None:
 
 def parseupstreamargs(
         args: Namespace, 
-        push: List[str]
+        pushcmd: List[str]
         ) -> List[str]:
     '''parses args for --set-upstream'''
-    pushl = push
+    pushl = pushcmd
     if len(args.upstream) == 1 and '/' in args.upstream[0]:
         # use REMOTE/BRANCH format
         remote: str

@@ -338,7 +338,7 @@ def runpipeline(args: Namespace) -> None:
             output = runcmd(showcmd, args, progressbar=progressbar, printsuccess=False)
             if output and output.returncode == 0:
                 showcommitresult(output, progressbar)
-            success("    ✓ shown", progressbar)
+            success("    ✓ comleted succesfully", progressbar)
 
         spacer(pbar=progressbar)
 
