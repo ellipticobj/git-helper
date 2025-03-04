@@ -43,11 +43,19 @@ MinimalNamespace = Namespace(
 
 def suggestfix(errormsg: str) -> str: # TODO: add more
     msg = errormsg.lower()
+    feedback: List[str] = []
     if "non-fast-forward" in msg or "rejected" in msg:
-        return "try running `git pull` before pushing, or use --force"
-    elif "permission denied" in msg:
-        return "check your ssh keys or credentials"
-    return ""
+        feedback.append("try running `git pull` before pushing, or use --force")
+    if "permission denied" in msg:
+        feedback.append("check your ssh keys or credentials")
+    if "Already up to date." in msg:
+        feedback.append(f"    i {Fore.CYAN}everything up to date")
+    if "nothing to commit" in msg:
+        feedback.append(f"    i {Fore.CYAN}nothing to commit")
+    if "Changes not staged for commit:":
+        feedback.append(f"    i {Fore.CYAN}there are unstaged changes") # TODO: find out how to print unstaged files
+    
+    return "\n".join(feedback)
 
 def runcmdwithoutprogress(
         cmd: List[str], 
@@ -63,12 +71,7 @@ def runcmdwithoutprogress(
     result: CompletedProcess[bytes] = runsubprocess(cmd, check=True, cwd=getcwd(), capture_output=captureoutput)
     outputstr: str = result.stdout.decode('utf-8', errors='replace').strip()
     if outputstr and printoutput:
-        if 'Everything up-to-date' in outputstr:
-            info(f"    i {Fore.CYAN}everything up to date", mainpbar)
-        elif 'nothing to commit' in outputstr:
-            info(f"    i {Fore.CYAN}nothing to commit", mainpbar)
-        elif len(outputstr) < 200:  # short messages
-            info(f"    i {Fore.BLACK}{outputstr}", mainpbar)
+        info(suggestfix(outputstr), mainpbar)
     if printsuccess:
         success("  ✓ completed successfully", mainpbar)
     return result

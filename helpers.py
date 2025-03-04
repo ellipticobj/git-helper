@@ -124,7 +124,7 @@ def pushcommand(
         if args.upstream:
             pushcmd = parseupstreamargs(args, pushcmd)
         if args.force:
-            pushcmd.append("--force")
+            pushcmd.append("--force-with-lease")
         if args.quiet:
             pushcmd.append("--quiet")
         elif args.verbose:
