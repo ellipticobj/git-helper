@@ -72,8 +72,8 @@ def runcmdwithoutprogress(
         success("  ✓ completed successfully", mainpbar)
     return result
 
-def runcmd(
-        cmd: List[str], 
+def runcmd(  # TODO: merge runcmd and runcmdwithout progress to prevent unnecessary duplicates
+        cmd: List[str],  # TODO: merge this runcmd and githandler's runcmd
         flags: Namespace = MinimalNamespace, 
         progressbar: Optional[tqdm] = None, 
         keepbar: bool = False, 
@@ -358,11 +358,11 @@ def runpipeline(args: Namespace) -> None:
         output = runcmd(cmd, args, progressbar=progressbar)
         progressbar.update(1)
 
-        spacer(pbar=progressbar, height=1)
+        spacer(pbar=progressbar)
 
         if output and output.returncode == 0:
             showcmd: List[str] = ["git", "show", "-s", "--pretty=format:%H|%an|%ad|%s"]
-            output = runcmd(showcmd, args, progressbar=progressbar)
+            output = runcmd(showcmd, args, progressbar=progressbar) # TODO: update runcmd so that i can remove the completed succesfully
             if output and output.returncode == 0:
                 showcommitresult(output, progressbar)
         duration = time() - stepstart
@@ -372,6 +372,7 @@ def runpipeline(args: Namespace) -> None:
             "duration": duration,
             "output": output.stdout.decode('utf-8', errors='replace') if output else ""
         })
+        spacer(pbar=progressbar)
 
         # push
         stepstart = time()
