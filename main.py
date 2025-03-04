@@ -2,14 +2,15 @@ from os import getcwd
 from time import time
 from tqdm import tqdm
 from sys import exit, argv
+from collections.abc import Callable
 from colorama import init, Fore, Style
 from argparse import ArgumentParser, Namespace
-from typing import List, Optional, Final, Dict, Union
+from typing import List, Optional, Final, Dict, Union, Tuple
 from loaders import startloadinganimation, stoploadinganimation, ThreadEventTuple
 from subprocess import list2cmdline, run as runsubprocess, CompletedProcess, CalledProcessError
 from loggers import success, error, info, printcmd, printinfo, printoutput, showcommitresult, printsteps, printdiff, spacer
-from helpers import completebar, initcommands, validateargs, getpushcommand, getstatuscommand, getsubmoduleupdatecommand, \
-    getstashcommand, getpullcommand, getstagecommand, getdiffcommand, getcommitcommand, getpulldiffcommand
+from helpers import completebar, initcommands, validateargs, pushcommand, statuscommand, submodulesupdatecommand, \
+    stashcommand, pullcommand, stagecommand, diffcommand, commitcommand, pulldiffcommand
 
 '''
 main entry point
@@ -40,12 +41,12 @@ MinimalNamespace = Namespace(
     mainpbar=None
 )
 
-def suggestfix(errormsg: str) -> str:
+def suggestfix(errormsg: str) -> str: # TODO: add more
     msg = errormsg.lower()
     if "non-fast-forward" in msg or "rejected" in msg:
-        return "try running `git pull` before pushing, or use --force!"
+        return "try running `git pull` before pushing, or use --force"
     elif "permission denied" in msg:
-        return "check your ssh keys or credentials!"
+        return "check your ssh keys or credentials"
     return ""
 
 def runcmdwithoutprogress(
@@ -77,7 +78,8 @@ def runcmd(  # TODO: merge runcmd and runcmdwithout progress to prevent unnecess
         flags: Namespace = MinimalNamespace, 
         progressbar: Optional[tqdm] = None, 
         keepbar: bool = False, 
-        captureoutput: bool = True
+        captureoutput: bool = True,
+        printsuccess: bool = True
         ) -> Optional[CompletedProcess[bytes]]:
     '''executes a command with error handling'''
     if not cmd:  # if command is empty, exit immediately
@@ -138,7 +140,8 @@ def runcmd(  # TODO: merge runcmd and runcmdwithout progress to prevent unnecess
             pbar.n = 100
             pbar.colour = 'green'
             pbar.refresh()
-            success("    ✓ completed successfully", progressbar)
+            if printsuccess:
+                success("    ✓ completed successfully", progressbar)
             return result
     except CalledProcessError as e:
         # update the main progress bar to red before exiting.
@@ -206,7 +209,6 @@ def getsteps(args: Namespace) -> List[str]:
 
 def generatereport(report: List[dict], totaltime: float, pbar: Optional[tqdm] = None, savetofile: Optional[str] = None) -> None:
     '''generates a report of the pipeline'''
-    # TODO: use info() instead of print()
     output: List[str] = []
     output.append("")
     output.append("report:")
@@ -225,7 +227,7 @@ def generatereport(report: List[dict], totaltime: float, pbar: Optional[tqdm] = 
                 f.write(line)
     else:
         for line in output:
-            print(line)
+            info(message=line, pbar=pbar)
 
 def displayheader() -> None:
     '''displays header'''
@@ -237,156 +239,111 @@ def displaysteps(steps: List[str]) -> None:
     print(f"\n{Fore.CYAN}{Style.BRIGHT}meows to meow:{Style.RESET_ALL}")
     printsteps(steps)
 
-def runpipeline(args: Namespace) -> None:
-    # show pipeline overview
-    report: List[Dict[str, Union[str, float, List[str]]]] = []
-    steps = getsteps(args)
-    displaysteps(steps)
-    starttime: float = time()
-    stepstart: float
-    completedsteps: int = 0
-    totalsteps: int = len(steps)
+def runandreporton(
+        func: Callable, 
+        flags: Namespace, 
+        pbar: Optional[tqdm], 
+        noprogressbar: bool = False, 
+        printsuccess: bool = True, 
+        customsuccess: str = "", 
+        printcmd: Optional[Callable] = None
+        ) -> Tuple[ Dict[str, Union[str, float, List[str]]], int]:
+    '''
+    runs a command returned by func, 
+    and returns a tuple with the report generated, and the number of steps completed
+    '''
     toadd: int
     cmd: List[str]
+    stepstart: float = time()
+    output: Optional[CompletedProcess[bytes]]
+    toadd, cmd = func(flags, progressbar=pbar)
+    if noprogressbar:
+        output = runcmd(cmd=cmd, flags=flags, progressbar=pbar, printsuccess=printsuccess)
+    else:
+        output = runcmdwithoutprogress(cmd=cmd, mainpbar=pbar, printsuccess=printsuccess)
+    if output and printcmd:
+        outputstr: str = output.stdout.decode('utf-8', errors='replace').strip()
+        printcmd(outputstr, pbar)
+        success(customsuccess, pbar)
+            
+    duration = time() - stepstart
+    return {
+        "step": "update submodules",
+        "command": " ".join(cmd) if cmd else "",
+        "duration": duration,
+        "output": output.stdout.decode('utf-8', errors='replace') if output else "",
+        "returncode": output.returncode if output else ""
+    }, toadd
+
+def runpipeline(args: Namespace) -> None:
+    # show pipeline overview
+    toadd: int
+    steps = getsteps(args)
+    starttime: float = time()
+    totalsteps: int = len(steps)
+    reportitem: Dict[str, Union[str, float, List[str]]]
+    report: List[Dict[str, Union[str, float, List[str]]]] = []
+
+    displaysteps(steps)
 
     # TODO: make a function prevent repitition of code
     # execute pipeline
     with tqdm(total=len(steps), desc=f"{Fore.RED}meowing...{Style.RESET_ALL}", bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}', position=0, leave=True) as progressbar:
         # status
-        stepstart = time()
-        toadd, cmd = getstatuscommand(args, progressbar)
-        runcmdwithoutprogress(cmd=cmd, mainpbar=progressbar)
-        duration = time() - stepstart
-        output: Optional[CompletedProcess[bytes]]
-        report.append({
-            "step": "status check",
-            "command": " ".join(cmd) if cmd else "",
-            "duration": duration,
-            "output": ""
-        })
+        reportitem, toadd = runandreporton(func=statuscommand, noprogressbar=True, flags=args, pbar=progressbar)
+        report.append(reportitem)
         progressbar.update(toadd)
         
         # update submodules
-        stepstart = time()
-        toadd, cmd = getsubmoduleupdatecommand(args, progressbar)
-        output = runcmd(cmd=cmd, flags=args, progressbar=progressbar)
-        duration = time() - stepstart
-        report.append({
-            "step": "update submodules",
-            "command": " ".join(cmd) if cmd else "",
-            "duration": duration,
-            "output": ""
-        })
+        reportitem, toadd = runandreporton(func=submodulesupdatecommand, flags=args, pbar=progressbar)
+        report.append(reportitem)
         progressbar.update(toadd)
 
         # stash
-        stepstart = time()
-        toadd, cmd = getstashcommand(args, progressbar)
-        output = runcmd(cmd=cmd, flags=args, progressbar=progressbar)
-        completedsteps += toadd
-        duration = time() - stepstart
-        report.append({
-            "step": "stash",
-            "command": " ".join(cmd) if cmd else "",
-            "duration": duration,
-            "output": output.stdout.decode('utf-8', errors='replace') if output else ""
-        })
+        reportitem, toadd = runandreporton(func=stashcommand, flags=args, pbar=progressbar)
+        report.append(reportitem)
         progressbar.update(toadd)
 
         # pull
-        stepstart = time()
-        toadd, cmd = getpullcommand(args, progressbar)
-        # pullresult: Optional[CompletedProcess[bytes]] = 
-        output = runcmd(cmd=cmd, flags=args, progressbar=progressbar)
-        info(message="", pbar=progressbar)
+        reportitem, toadd = runandreporton(func=pullcommand, flags=args, pbar=progressbar)
+        report.append(reportitem)
         progressbar.update(toadd)
-        duration = time() - stepstart
-        report.append({
-            "step": "pull",
-            "command": " ".join(cmd) if cmd else "",
-            "duration": duration,
-            "output": output.stdout.decode('utf-8', errors='replace') if output else "",
-        })
 
         if args.pull or args.norebase:
-            stepstart = time()
-            info("changes: ", progressbar)
-            cmd = getpulldiffcommand()
-            output = runcmdwithoutprogress(cmd, progressbar, captureoutput=True, printoutput=False, printsuccess=False)
-            if output:
-                outputstr: str = output.stdout.decode('utf-8', errors='replace').strip()
-                printdiff(outputstr=outputstr, pbar=progressbar)
-                success("  ✓ changes shown", progressbar)
-            duration = time() - stepstart
-            progressbar.update(1)
-            report.append({
-                "step": "pulldiff",
-                "command": " ".join(cmd) if cmd else "",
-                "duration": duration,
-                "output": output.stdout.decode('utf-8', errors='replace') if output else "",
-            })
+            reportitem, toadd = runandreporton(func=pulldiffcommand, noprogressbar=True, flags=args, pbar=progressbar, printsuccess=False, customsuccess="  ✓ changes shown", printcmd=printdiff)
+            progressbar.update(toadd)
+            report.append(reportitem)
             
         # add
-        stepstart = time()
-        cmd = getstagecommand(args, progressbar)
-        output = runcmd(cmd=cmd, flags=args, progressbar=progressbar)
-        progressbar.update(1)
-        duration = time() - stepstart
-        report.append({
-            "step": "stage",
-            "command": " ".join(cmd) if cmd else "",
-            "duration": duration,
-            "output": ""
-        })
+        reportitem, toadd = runandreporton(func=stagecommand, flags=args, pbar=progressbar)
+        report.append(reportitem)
+        progressbar.update(toadd)
 
         # diff
-        stepstart = time()
-        toadd, cmd = getdiffcommand(args, progressbar)
-        output = runcmdwithoutprogress(cmd=cmd, mainpbar=progressbar)
-        progressbar.update(1)
-        duration = time() - stepstart
-        report.append({
-            "step": "diff",
-            "command": " ".join(cmd) if cmd else "",
-            "duration": duration,
-            "output": output.stdout.decode('utf-8', errors='replace') if output else ""
-        })
+        reportitem, toadd = runandreporton(func=diffcommand, noprogressbar=True, flags=args, pbar=progressbar)
+        report.append(reportitem)
+        progressbar.update(toadd)
 
         # commit
-        stepstart = time()
-        cmd = getcommitcommand(args, progressbar)
-        output = runcmd(cmd, args, progressbar=progressbar)
-        progressbar.update(1)
+        reportitem, toadd = runandreporton(func=commitcommand, flags=args, pbar=progressbar)
+        progressbar.update(toadd)
+        report.append(reportitem)
 
         spacer(pbar=progressbar)
 
-        if output and output.returncode == 0:
+        if reportitem["output"] and reportitem["returncode"] == 0:
             showcmd: List[str] = ["git", "show", "-s", "--pretty=format:%H|%an|%ad|%s"]
-            output = runcmd(showcmd, args, progressbar=progressbar) # TODO: update runcmd so that i can remove the completed succesfully
+            output = runcmd(showcmd, args, progressbar=progressbar, printsuccess=False)
             if output and output.returncode == 0:
                 showcommitresult(output, progressbar)
-        duration = time() - stepstart
-        report.append({
-            "step": "commit",
-            "command": " ".join(cmd) if cmd else "",
-            "duration": duration,
-            "output": output.stdout.decode('utf-8', errors='replace') if output else ""
-        })
+            success("    ✓ shown", progressbar)
+            
         spacer(pbar=progressbar)
 
         # push
-        stepstart = time()
-        cmd = getpushcommand(args)
-        info("pushing to remote", progressbar)
-        output = runcmd(cmd, args, progressbar=progressbar)
-        progressbar.update(1)
-        duration = time() - stepstart
-        report.append({
-            "step": "push",
-            "command": " ".join(cmd) if cmd else "",
-            "duration": duration,
-            "output": output.stdout.decode('utf-8', errors='replace') if output else ""
-        })
+        reportitem, toadd = runandreporton(func=pushcommand, flags=args, pbar=progressbar)
+        report.append(reportitem)
+        progressbar.update(toadd)
 
         totaltime = time() - starttime
         

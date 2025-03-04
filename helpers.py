@@ -1,7 +1,7 @@
 from sys import exit
 from tqdm import tqdm
-from typing import List, Tuple
 from loggers import error, info
+from typing import List, Tuple, Optional
 from argparse import ArgumentParser, _ArgumentGroup, Namespace
 
 '''
@@ -111,8 +111,12 @@ def _getpullcommand(args: Namespace) -> List[str]:
         pullargs.append("--no-rebase")
     return pullargs
 
-def getpushcommand(args: Namespace) -> List[str]:
+def pushcommand(
+        args: Namespace,
+        progressbar: Optional[tqdm]
+        ) -> List[str]:
     '''adds flags to the push command'''
+    info("pushing to remote", progressbar)
     if not args.nopush:
         push: List[str] = ["git", "push"]
         if args.tags:
@@ -128,70 +132,75 @@ def getpushcommand(args: Namespace) -> List[str]:
         return push
     return []
 
-def getstatuscommand(
+def statuscommand(
         args: Namespace, 
-        progressbar: tqdm
+        progressbar: Optional[tqdm]
         ) -> Tuple[int, List[str]]:
     '''gets command for git status check'''
     # status check
     if args.status:
         info(f"{args.__class__.__name__} status check", progressbar)
         cmd: List[str] = ["git", "status"]
-        progressbar.update(1)
+        if progressbar: 
+            progressbar.update(1)
         return 1, cmd
     return 0, []
 
-def getsubmoduleupdatecommand(
+def submodulesupdatecommand(
         args: Namespace, 
-        progressbar: tqdm
+        progressbar: Optional[tqdm]
         ) -> Tuple[int, List[str]]:
     '''gets command for submodule update'''
     if args.updatesubmodules:
         info("\nupdating submodules", progressbar)
         cmd: List[str] = ["git", "submodule", "update", "--init", "--recursive"]
-        progressbar.update(1)
+        if progressbar:
+            progressbar.update(1)
         return 1, cmd
     return 0, []
 
-def getstashcommand(
+def stashcommand(
         args: Namespace, 
-        progressbar: tqdm
+        progressbar: Optional[tqdm]
         ) -> Tuple[int, List[str]]:
     '''gets command for git stash'''
     if args.stash:
         info("\nstashing changes", progressbar)
         cmd: List[str] = ["git", "stash"]
-        progressbar.update(1)
+        if progressbar:
+            progressbar.update(1)
         return 1, cmd
     return 0, []
 
-def getpullcommand(
+def pullcommand(
         args: Namespace, 
-        progressbar: tqdm
+        progressbar: Optional[tqdm]
         ) -> Tuple[int, List[str]]:
     '''gets command for git pull'''
     if args.pull or args.norebase:
         info("\npulling from remote", progressbar)
         args.mainpbar = progressbar  # attach progress bar to args (if needed)
-        progressbar.update(1)
+        if progressbar:
+            progressbar.update(1)
         return 1, _getpullcommand(args)
     return 0, []
 
-def getstagecommand(
+def stagecommand(
         args: Namespace, 
-        progressbar: tqdm
+        progressbar: Optional[tqdm]
         ) -> List[str]:
     '''gets command for git add'''
     info("\nstaging changes", progressbar)
     cmd: List[str] = ["git", "add", *args.add] if args.add else ["git", "add", "."]
     if args.verbose and not args.quiet:
         cmd.append("--verbose")
-    progressbar.update(1)
+    if progressbar:
+        progressbar.update(1)
     return cmd
 
-def getdiffcommand(
+def diffcommand(
         args: Namespace, 
-        progressbar: tqdm
+        progressbar: Optional[tqdm]
         ) -> Tuple[int, List[str]]:
     '''gets command for git diff'''
     if args.diff:
@@ -200,15 +209,24 @@ def getdiffcommand(
         return 1, cmd
     return 0, []
 
-def getcommitcommand(
+def commitcommand(
         args: Namespace, 
-        progressbar: tqdm
+        progressbar: Optional[tqdm]
         ) -> List[str]:
     '''gets command for git commit'''
     info("\ncommitting", progressbar)
     cmd: List[str] = _getcommitcommand(args)
-    progressbar.update(1)
+    if progressbar:
+        progressbar.update(1)
     return cmd
+
+def pulldiffcommand(
+        args: Namespace, 
+        progressbar: Optional[tqdm]
+        ) -> Tuple[int, List[str]]:
+    '''Get command to show diff after pull'''
+    info("changes: ", progressbar)
+    return 1, ["git", "diff", "--numstat", "HEAD@{1}", "HEAD"]
 
 def getgitcommands(
         gitcommand: str, 
@@ -231,8 +249,3 @@ def getgitcommands(
         cmd = ["git", gitcommand] + commandarguments
     
     return precmd, cmd
-
-def getpulldiffcommand() -> List[str]:
-    '''Get command to show diff after pull'''
-    # return ["git", "-c", "color.ui=always", "diff", "--stat", "HEAD@{1}", "HEAD"]
-    return ["git", "diff", "--numstat", "HEAD@{1}", "HEAD"]
