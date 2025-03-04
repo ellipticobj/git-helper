@@ -227,6 +227,7 @@ def runpipeline(args: Namespace) -> None:
         toadd, cmd = getstatuscommand(args, progressbar)
         runcmdwithoutprogress(cmd=cmd, mainpbar=progressbar)
         duration = time() - stepstart
+        output: Optional[CompletedProcess[bytes]]
         report.append({
             "step": "status check",
             "command": " ".join(cmd) if cmd else "",
@@ -238,7 +239,7 @@ def runpipeline(args: Namespace) -> None:
         # update submodules
         stepstart = time()
         toadd, cmd = getsubmoduleupdatecommand(args, progressbar)
-        runcmd(cmd=cmd, flags=args, progressbar=progressbar)
+        output = runcmd(cmd=cmd, flags=args, progressbar=progressbar)
         duration = time() - stepstart
         report.append({
             "step": "update submodules",
@@ -251,7 +252,7 @@ def runpipeline(args: Namespace) -> None:
         # stash
         stepstart = time()
         toadd, cmd = getstashcommand(args, progressbar)
-        output: Optional[CompletedProcess[bytes]] = runcmd(cmd=cmd, flags=args, progressbar=progressbar)
+        output = runcmd(cmd=cmd, flags=args, progressbar=progressbar)
         completedsteps += toadd
         duration = time() - stepstart
         report.append({
@@ -281,9 +282,9 @@ def runpipeline(args: Namespace) -> None:
             stepstart = time()
             info("changes: ", progressbar)
             cmd = getpulldiffcommand()
-            result = runcmdwithoutprogress(cmd, progressbar, captureoutput=True, printoutput=False, printsuccess=False)
-            if result:
-                outputstr: str = result.stdout.decode('utf-8', errors='replace').strip()
+            output = runcmdwithoutprogress(cmd, progressbar, captureoutput=True, printoutput=False, printsuccess=False)
+            if output:
+                outputstr: str = output.stdout.decode('utf-8', errors='replace').strip()
                 printdiff(outputstr=outputstr, pbar=progressbar)
                 success("  ✓ changes shown", progressbar)
             duration = time() - stepstart
@@ -298,7 +299,7 @@ def runpipeline(args: Namespace) -> None:
         # add
         stepstart = time()
         cmd = getstagecommand(args, progressbar)
-        runcmd(cmd=cmd, flags=args, progressbar=progressbar)
+        output = runcmd(cmd=cmd, flags=args, progressbar=progressbar)
         progressbar.update(1)
         duration = time() - stepstart
         report.append({
@@ -331,9 +332,9 @@ def runpipeline(args: Namespace) -> None:
 
         if output and output.returncode == 0:
             showcmd: List[str] = ["git", "show", "-s", "--pretty=format:%H|%an|%ad|%s"]
-            showresult = runcmd(showcmd, args, progressbar=progressbar)
-            if showresult and showresult.returncode == 0:
-                showcommitresult(showresult, progressbar)
+            output = runcmd(showcmd, args, progressbar=progressbar)
+            if output and output.returncode == 0:
+                showcommitresult(output, progressbar)
         duration = time() - stepstart
         report.append({
             "step": "commit",
@@ -346,7 +347,7 @@ def runpipeline(args: Namespace) -> None:
         stepstart = time()
         cmd = getpushcommand(args)
         info("pushing to remote", progressbar)
-        runcmd(cmd, args, progressbar=progressbar)
+        output = runcmd(cmd, args, progressbar=progressbar)
         progressbar.update(1)
         duration = time() - stepstart
         report.append({
