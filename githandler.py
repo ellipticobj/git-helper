@@ -14,14 +14,19 @@ handles meow <cmd>
 
 def handlegitcommands(args: List[str], messages: Dict[str, str]) -> None:
     '''handles meow <cmd> commands'''
-    
+    result: Optional[CompletedProcess[bytes]]
+    commandarguments: List[str] 
     gitcommand = args[1]
-    commandarguments: List[str] = args[2:]
+    if len(args) > 2:
+        commandarguments = args[2:]
+    else:
+        commandarguments = []
     
     if gitcommand == "log":
         cmd = ["git", "log"] + commandarguments
-        result: CompletedProcess = runsubprocess(cmd, check=False)
-        exit(result.returncode)
+        result = runsubprocess(cmd, check=False)
+        returncode = result.returncode if result else 0
+        exit(returncode)
     
     lastcmdstr = ""
     try:
@@ -69,8 +74,10 @@ def handlegitcommands(args: List[str], messages: Dict[str, str]) -> None:
 def getloadingmessage(gitcommand: str, messages: Dict[str, str]) -> str:
     return messages.get(gitcommand, "processing...")
 
-def runcmd(cmd: List[str], pbar) -> CompletedProcess:
+def runcmd(cmd: List[str], pbar) -> Optional[CompletedProcess[bytes]]:
     '''runs cmd'''
+    if not cmd:
+        return None
     cmdstr = list2cmdline(cmd)
     info("    running command:", pbar)
     printcmd(f"      $ {cmdstr}", pbar)

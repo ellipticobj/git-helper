@@ -171,3 +171,9 @@ def showresult(
     if result.returncode == 0:
         for line in result.stdout.decode().split("\n"):
             info(f"    i {Fore.CYAN}{line}", mainpbar)
+
+def spacer(pbar: Optional[tqdm] = None, height: int = 1) -> str:
+    for i in range(height):
+        info(message="", pbar=pbar)
+
+    return "\n" * height
