@@ -2,37 +2,38 @@
 report:
 step: update submodules
   command: 
+  duration: 0.00000215 seconds
+
+step: update submodules
+  command: 
   duration: 0.00000119 seconds
+
+step: update submodules
+  command: 
+  duration: 0.00000095 seconds
 
 step: update submodules
   command: 
   duration: 0.00000072 seconds
 
 step: update submodules
-  command: 
-  duration: 0.00000048 seconds
-
-step: update submodules
-  command: 
-  duration: 0.00000048 seconds
-
-step: update submodules
   command: git add .
-  duration: 0.00234699 seconds
+  duration: 0.00407529 seconds
 
 step: update submodules
   command: 
-  duration: 0.00000143 seconds
+  duration: 0.00000215 seconds
 
 step: update submodules
-  command: git commit -m use --force-with-lease instead of --force
-  duration: 0.01812053 seconds
-  output: [dev 619a8d7] use --force-with-lease instead of --force
- 2 files changed, 14 insertions(+), 11 deletions(-)
+  command: git commit -m refactored runcmd functions
+  duration: 0.01087141 seconds
+  output: [dev 0dd3fd4] refactored runcmd functions
+ 6 files changed, 206 insertions(+), 189 deletions(-)
+ create mode 100644 report.txt
 
 
 step: update submodules
   command: git push
-  duration: 4.77573442 seconds
+  duration: 3.02561712 seconds
 
-total duration: 4.90052438 seconds
+total duration: 3.14775729 seconds

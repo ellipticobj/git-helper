@@ -266,8 +266,9 @@ def getgitcommands(
     #     pass
     # elif gitcommand == "pull":
     #     pass
-    # elif gitcommand == "clone":
-    #     pass
+    elif gitcommand == "clone":
+        precmd = []
+        cmd = ["git", "clone"] + commandarguments + ["--verbose", "--recursive", "--remote-submodules"]
     else:
         precmd = []
         cmd = ["git", gitcommand] + commandarguments
