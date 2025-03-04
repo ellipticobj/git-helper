@@ -1,7 +1,6 @@
 # meow
 a git wrapper made in python  
-currently very buggy :(  
-development takes place on the dev branch, main is for prod  
+version 1!!! major (work in progress) rewrite of the code, with better organization.  
 
 ## installation
 this is currently only for linux arm64 systems.  
