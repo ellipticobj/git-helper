@@ -215,13 +215,13 @@ def generatereport(report: List[dict], totaltime: float, pbar: Optional[tqdm] = 
     for i, step in enumerate(report, start=1):
         output.append(f"step: {step['step']}\n")
         output.append(f"  command: {step.get('command', 'N/A')}\n")
-        output.append(f"  duration: {step['duration']:.2f} seconds\n")
+        output.append(f"  duration: {step['duration']:.8f} seconds\n")
         if step.get("output"):
             output.append(f"  output: {step['output']}\n")
         if step.get("returncode"):
             output.append(f"  return code: {step['returncode']}\n")
         output.append("\n")
-    output.append(f"total duration: {totaltime:.2f} seconds\n")
+    output.append(f"total duration: {totaltime:.8f} seconds\n")
 
     if savetofile:
         with open(savetofile, 'w') as f:
