@@ -188,7 +188,7 @@ def pullcommand(
 def stagecommand(
         args: Namespace, 
         progressbar: Optional[tqdm]
-        ) -> List[str]:
+        ) -> Tuple[int, List[str]]:
     '''gets command for git add'''
     info("\nstaging changes", progressbar)
     cmd: List[str] = ["git", "add", *args.add] if args.add else ["git", "add", "."]
@@ -196,7 +196,7 @@ def stagecommand(
         cmd.append("--verbose")
     if progressbar:
         progressbar.update(1)
-    return cmd
+    return 1, cmd
 
 def diffcommand(
         args: Namespace, 
@@ -212,16 +212,16 @@ def diffcommand(
 def commitcommand(
         args: Namespace, 
         progressbar: Optional[tqdm]
-        ) -> List[str]:
+        ) -> Tuple[int, List[str]]:
     '''gets command for git commit'''
     info("\ncommitting", progressbar)
     cmd: List[str] = _getcommitcommand(args)
     if progressbar:
         progressbar.update(1)
-    return cmd
+    return 1, cmd
 
 def pulldiffcommand(
-        args: Namespace, 
+        args: Namespace,
         progressbar: Optional[tqdm]
         ) -> Tuple[int, List[str]]:
     '''Get command to show diff after pull'''
@@ -231,7 +231,7 @@ def pulldiffcommand(
 def getgitcommands(
         gitcommand: str, 
         commandarguments: List[str]
-        ):
+        ) -> Tuple[List[str], List[str]]:
     if gitcommand == "add":
         precmd = []
         cmd = ["git", "add"] + (commandarguments or ["."])

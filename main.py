@@ -210,16 +210,18 @@ def getsteps(args: Namespace) -> List[str]:
 def generatereport(report: List[dict], totaltime: float, pbar: Optional[tqdm] = None, savetofile: Optional[str] = None) -> None:
     '''generates a report of the pipeline'''
     output: List[str] = []
-    output.append("")
-    output.append("report:")
+    output.append("\n")
+    output.append("report:\n")
     for i, step in enumerate(report, start=1):
-        output.append(f"step: {step['step']}")
-        output.append(f"  command: {step.get('command', 'N/A')}")
-        output.append(f"  duration: {step['duration']:.2f} seconds")
+        output.append(f"step: {step['step']}\n")
+        output.append(f"  command: {step.get('command', 'N/A')}\n")
+        output.append(f"  duration: {step['duration']:.2f} seconds\n")
         if step.get("output"):
-            output.append(f"  output: {step['output']}")
-        output.append("")
-    output.append(f"total duration: {totaltime:.2f} seconds")
+            output.append(f"  output: {step['output']}\n")
+        if step.get("returncode"):
+            output.append(f"  return code: {step['returncode']}\n")
+        output.append("\n")
+    output.append(f"total duration: {totaltime:.2f} seconds\n")
 
     if savetofile:
         with open(savetofile, 'w') as f:
@@ -337,7 +339,7 @@ def runpipeline(args: Namespace) -> None:
             if output and output.returncode == 0:
                 showcommitresult(output, progressbar)
             success("    ✓ shown", progressbar)
-            
+
         spacer(pbar=progressbar)
 
         # push
