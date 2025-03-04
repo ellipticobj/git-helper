@@ -1,7 +1,9 @@
 from sys import exit
+from time import time
 from os import getcwd
 from tqdm import tqdm
 from colorama import Style, Fore
+from contextlib import contextmanager
 from typing import List, Tuple, Optional, Dict
 from argparse import ArgumentParser, _ArgumentGroup, Namespace
 from loggers import error, info, success, printcmd, printoutput
@@ -137,10 +139,10 @@ def _getpullcommand(args: Namespace) -> List[str]:
 
 def pushcommand(
         args: Namespace,
-        progressbar: Optional[tqdm]
+        pbar: Optional[tqdm]
         ) -> Tuple[int, List[str]]:
     '''adds flags to the push command'''
-    info("pushing to remote", progressbar)
+    info("pushing to remote", pbar)
     if not args.nopush:
         pushcmd: List[str] = ["git", "push"]
         if args.tags:
@@ -158,98 +160,98 @@ def pushcommand(
 
 def statuscommand(
         args: Namespace, 
-        progressbar: Optional[tqdm]
+        pbar: Optional[tqdm]
         ) -> Tuple[int, List[str]]:
     '''gets command for git status check'''
     # status check
     if args.status:
-        info(f"{args.__class__.__name__} status check", progressbar)
+        info(f"{args.__class__.__name__} status check", pbar)
         cmd: List[str] = ["git", "status"]
-        if progressbar: 
-            progressbar.update(1)
+        if pbar: 
+            pbar.update(1)
         return 1, cmd
     return 0, []
 
 def submodulesupdatecommand(
         args: Namespace, 
-        progressbar: Optional[tqdm]
+        pbar: Optional[tqdm]
         ) -> Tuple[int, List[str]]:
     '''gets command for submodule update'''
     if args.updatesubmodules:
-        info("\nupdating submodules", progressbar)
+        info("\nupdating submodules", pbar)
         cmd: List[str] = ["git", "submodule", "update", "--init", "--recursive"]
-        if progressbar:
-            progressbar.update(1)
+        if pbar:
+            pbar.update(1)
         return 1, cmd
     return 0, []
 
 def stashcommand(
         args: Namespace, 
-        progressbar: Optional[tqdm]
+        pbar: Optional[tqdm]
         ) -> Tuple[int, List[str]]:
     '''gets command for git stash'''
     if args.stash:
-        info("\nstashing changes", progressbar)
+        info("\nstashing changes", pbar)
         cmd: List[str] = ["git", "stash"]
-        if progressbar:
-            progressbar.update(1)
+        if pbar:
+            pbar.update(1)
         return 1, cmd
     return 0, []
 
 def pullcommand(
         args: Namespace, 
-        progressbar: Optional[tqdm]
+        pbar: Optional[tqdm]
         ) -> Tuple[int, List[str]]:
     '''gets command for git pull'''
     if args.pull or args.norebase:
-        info("\npulling from remote", progressbar)
-        args.mainpbar = progressbar  # attach progress bar to args (if needed)
-        if progressbar:
-            progressbar.update(1)
+        info("\npulling from remote", pbar)
+        args.mainpbar = pbar  # attach progress bar to args (if needed)
+        if pbar:
+            pbar.update(1)
         return 1, _getpullcommand(args)
     return 0, []
 
 def stagecommand(
         args: Namespace, 
-        progressbar: Optional[tqdm]
+        pbar: Optional[tqdm]
         ) -> Tuple[int, List[str]]:
     '''gets command for git add'''
-    info("\nstaging changes", progressbar)
+    info("\nstaging changes", pbar)
     cmd: List[str] = ["git", "add", *args.add] if args.add else ["git", "add", "."]
     if args.verbose and not args.quiet:
         cmd.append("--verbose")
-    if progressbar:
-        progressbar.update(1)
+    if pbar:
+        pbar.update(1)
     return 1, cmd
 
 def diffcommand(
         args: Namespace, 
-        progressbar: Optional[tqdm]
+        pbar: Optional[tqdm]
         ) -> Tuple[int, List[str]]:
     '''gets command for git diff'''
     if args.diff:
-        info("\nshowing diff", progressbar)
+        info("\nshowing diff", pbar)
         cmd: List[str] = ["git", "diff", "--staged"]
         return 1, cmd
     return 0, []
 
 def commitcommand(
         args: Namespace, 
-        progressbar: Optional[tqdm]
+        pbar: Optional[tqdm]
         ) -> Tuple[int, List[str]]:
     '''gets command for git commit'''
-    info("\ncommitting", progressbar)
+    info("\ncommitting", pbar)
     cmd: List[str] = _getcommitcommand(args)
-    if progressbar:
-        progressbar.update(1)
+    if pbar:
+        pbar.update(1)
     return 1, cmd
 
 def pulldiffcommand(
         args: Namespace,
-        progressbar: Optional[tqdm]
+        pbar: Optional[tqdm]
         ) -> Tuple[int, List[str]]:
     '''Get command to show diff after pull'''
-    info("changes: ", progressbar)
+    info("changes: ", pbar)
     return 1, ["git", "diff", "--numstat", "HEAD@{1}", "HEAD"]
 
 def getgitcommands(
@@ -264,8 +266,9 @@ def getgitcommands(
         cmd = ["git", "commit"] + (["-m"] + commandarguments if commandarguments else [])
     # elif gitcommand == "push": # TODO: finish this
     #     pass
-    # elif gitcommand == "pull":
-    #     pass
+    elif gitcommand == "pull":
+        precmd = []
+        cmd = ["git", "pull"] + commandarguments + ["--autostash", ""]
     elif gitcommand == "clone":
         precmd = []
         cmd = ["git", "clone"] + commandarguments + ["--verbose", "--recursive", "--remote-submodules"]
@@ -275,7 +278,7 @@ def getgitcommands(
     
     return precmd, cmd
 
-def suggestfix(errormsg: str) -> str: # TODO: add more
+def suggestfix(errormsg: str) -> str:
     msg = errormsg.lower()
     feedback: List[str] = []
     if "non-fast-forward" in msg or "rejected" in msg:
@@ -310,7 +313,7 @@ def runcmd(
     # check if this is an interactive command
     interactive = (cmd[0] == "git" and cmd[1] == "commit" and len(cmd) == 2)
     if isinteractive is not None:
-        interactive = interactive
+        interactive = isinteractive
         if (cmd[0] == "git" and cmd[1] == "commit" and len(cmd) == 2):
             interactive = True
 
@@ -398,3 +401,12 @@ def runcmd(
     except KeyboardInterrupt:
         error(f"{Fore.CYAN}user interrupted", pbar)
         return None
+
+@contextmanager
+def incrementprogress(pbar: tqdm, by: int = 1):
+    start = time()
+    try:
+        yield lambda: time() - start
+    finally:
+        pbar.update(by)
+        pbar.refresh()

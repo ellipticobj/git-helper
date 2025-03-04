@@ -50,12 +50,6 @@ def printinfo(version: str) -> NoReturn:
     print(f"{Fore.BLUE}https://github.com/ellipticobj/meower{Style.RESET_ALL}")
     exit(1)
 
-def printsteps(steps: List[str]) -> None:
-    '''prints pipeline steps'''
-    for i, step in enumerate(steps, 1): 
-        print(f"  {Fore.BLUE}{i}.{Style.RESET_ALL} {Fore.BLACK}{step}{Style.RESET_ALL}")
-    print()
-
 def printdiff(outputstr: str, pbar: Optional[tqdm]) -> None:
     additions = 0
     deletions = 0

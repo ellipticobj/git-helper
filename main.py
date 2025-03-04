@@ -8,20 +8,71 @@ from subprocess import CompletedProcess
 from argparse import ArgumentParser, Namespace
 from typing import List, Optional, Final, Dict, Union, Tuple
 from loaders import startloadinganimation, stoploadinganimation, ThreadEventTuple
-from loggers import success, info, printinfo, showcommitresult, printsteps, printdiff, spacer
+from loggers import success, info, printinfo, spacer
 from helpers import completebar, initcommands, validateargs, pushcommand, statuscommand, submodulesupdatecommand, \
-    stashcommand, pullcommand, stagecommand, diffcommand, commitcommand, pulldiffcommand, runcmd, GITCOMMANDMESSAGES
+    stashcommand, pullcommand, stagecommand, diffcommand, commitcommand, pulldiffcommand, runcmd, GITCOMMANDMESSAGES, \
+    incrementprogress
 
 '''
 main entry point
+
+file pipeline:
+loaders -> loggers -> helpers -> githandler -> main
 '''
 
 # initialize colorama
 init(autoreset=True)
 
-VERSION: Final[str] = "0.2.5-preview4"
+VERSION: Final[str] = "0.2.5-preview5"
 
 KNOWNCMDS: List[str] = list(GITCOMMANDMESSAGES.keys())
+
+class PipelineStep:
+    '''step in the pipeline'''
+    def __init__(self, name: str, func: Callable[[Namespace, Optional[tqdm]], Tuple[int, List[str]]], nopbar: bool = False):
+        self.name = name
+        self.func = func
+        self.nopbar = nopbar
+
+    def execute(self, args: Namespace, pbar: Optional[tqdm]) -> Tuple[Dict[str, Union[str, float, int]], int]:
+        '''execute the step'''
+        start = time()
+        toadd, cmd = self.func(args, pbar=pbar) # type: ignore
+
+        result: Optional[CompletedProcess[bytes]] = runcmd(
+            cmd=cmd,
+            flags=args,
+            pbar=pbar,
+            withprogress=not self.nopbar
+        )
+        duration = time() - start
+        report = {
+            "step": self.name,
+            "command": " ".join(cmd) if cmd else "",
+            "duration": duration,
+            "output": result.stdout.decode("utf-8", errors="replace") if result else "",
+            "returncode": result.returncode if result else ""
+        }
+        return report, toadd # type: ignore
+    
+class Pipeline:
+    '''pipeline'''
+    def __init__(self, args: Namespace, steps: List[PipelineStep], pbar: tqdm):
+        self.args = args
+        self.steps = steps
+        self.pbar = pbar
+        self.report: List[Dict[str, Union[str, float]]] = []
+
+    def run(self) -> None:
+        '''loops through items in self.steps and runs them'''
+        starttime = time()
+        for step in self.steps:
+            reportitem, toadd = step.execute(self.args, self.pbar)
+            with incrementprogress(self.pbar, by=toadd):
+                self.report.append(reportitem)
+        totaltime = time() - starttime
+        self.report.append({"step": "TOTAL", "duration": totaltime})
+        completebar(self.pbar, self.pbar.total)
 
 def checkargv(
         args: List[str], 
@@ -41,24 +92,39 @@ def checkargv(
             handlegitcommands(args, GITCOMMANDMESSAGES)
     return None
 
-def getsteps(args: Namespace) -> List[str]:
+def getsteps(args: Namespace) -> List[PipelineStep]:
     '''gets the commands the program has to complete'''
-    steps: List[str] = []
+    steps: List[PipelineStep] = []
+
+    # get status
     if args.status:
-        steps.append("status check")
+        steps.append(PipelineStep("get status", statuscommand, nopbar=True))
+
+    # update submodules
     if args.updatesubmodules:
-        steps.append("update submodules")
+        steps.append(PipelineStep("update submodules", submodulesupdatecommand))
+
+    # stash
     if args.stash:
-        steps.append("stash changes")
+        steps.append(PipelineStep("stash changes", stashcommand))
+    
+    # pull
     if args.pull or args.norebase:
-        steps.append("pull from remote")
-        steps.append("show changes")
-    steps.append("stage changes")
+        steps.append(PipelineStep("pull from remote", pullcommand))
+        steps.append(PipelineStep("get pull diff", pulldiffcommand, nopbar=True))
+    
+    # stage changes
+    steps.append(PipelineStep("stage changes", stagecommand))
     if args.diff:
-        steps.append("show diff")
-    steps.append("commit changes")
+        steps.append(PipelineStep("get diff", diffcommand, nopbar=True))
+    
+    # commit changes
+    steps.append(PipelineStep("commit changes", commitcommand))
+
+    # push
     if not args.nopush:
-        steps.append("push to remote")
+        steps.append(PipelineStep("push changes", pushcommand))
+    
     return steps
 
 def generatereport(report: List[dict], totaltime: float, pbar: Optional[tqdm] = None, savetofile: Optional[str] = None) -> None:
@@ -90,16 +156,22 @@ def displayheader() -> None:
     print(f"{Fore.MAGENTA}{Style.BRIGHT}meow {Style.RESET_ALL}{Fore.CYAN}v{VERSION}{Style.RESET_ALL}")
     print(f"\ncurrent directory: {Style.BRIGHT}{getcwd()}\n")
 
-def displaysteps(steps: List[str]) -> None:
+def displaysteps(steps: List[PipelineStep]) -> None:
     '''displays the steps'''
     print(f"\n{Fore.CYAN}{Style.BRIGHT}meows to meow:{Style.RESET_ALL}")
-    printsteps(steps)
+
+    i: int
+    step: PipelineStep
+    for i, step in enumerate(steps, 1): 
+        print(f"  {Fore.BLUE}{i}.{Style.RESET_ALL} {Fore.BLACK}{step.name}{Style.RESET_ALL}")
+    print()
 
 def runandreporton(
         func: Callable, 
+        stepname: str,
         flags: Namespace, 
         pbar: Optional[tqdm], 
-        noprogressbar: bool = False, 
+        nopbar: bool = False, 
         printsuccess: bool = True, 
         customsuccess: str = "", 
         printcmd: Optional[Callable] = None
@@ -112,8 +184,8 @@ def runandreporton(
     cmd: List[str]
     stepstart: float = time()
     output: Optional[CompletedProcess[bytes]]
-    toadd, cmd = func(flags, progressbar=pbar)
-    if noprogressbar:
+    toadd, cmd = func(flags, pbar=pbar)
+    if nopbar:
         output = runcmd(cmd=cmd, flags=flags, pbar=pbar, printsuccess=printsuccess)
     else:
         output = runcmd(cmd=cmd, pbar=pbar, printsuccess=printsuccess, withprogress=False)
@@ -124,7 +196,7 @@ def runandreporton(
             
     duration = time() - stepstart
     return {
-        "step": "update submodules",
+        "step": stepname,
         "command": " ".join(cmd) if cmd else "",
         "duration": duration,
         "output": output.stdout.decode('utf-8', errors='replace') if output else "",
@@ -133,84 +205,27 @@ def runandreporton(
 
 def runpipeline(args: Namespace) -> None:
     # show pipeline overview
-    toadd: int
     steps = getsteps(args)
-    starttime: float = time()
     totalsteps: int = len(steps)
-    reportitem: Dict[str, Union[str, float, List[str]]]
-    report: List[Dict[str, Union[str, float, List[str]]]] = []
 
     displaysteps(steps)
 
     # execute pipeline
-    with tqdm(total=len(steps), desc=f"{Fore.RED}meowing...{Style.RESET_ALL}", bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}', position=0, leave=True) as progressbar:
-        # status
-        reportitem, toadd = runandreporton(func=statuscommand, noprogressbar=True, flags=args, pbar=progressbar)
-        report.append(reportitem)
-        progressbar.update(toadd)
-        
-        # update submodules
-        reportitem, toadd = runandreporton(func=submodulesupdatecommand, flags=args, pbar=progressbar)
-        report.append(reportitem)
-        progressbar.update(toadd)
+    with tqdm(total=len(steps), desc=f"{Fore.RED}meowing...{Style.RESET_ALL}", bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}', position=0, leave=True) as pbar:
+        pipeline = Pipeline(args, steps, pbar)
+        pipeline.run()
 
-        # stash
-        reportitem, toadd = runandreporton(func=stashcommand, flags=args, pbar=progressbar)
-        report.append(reportitem)
-        progressbar.update(toadd)
+        totaltime: int = int(pipeline.report[-1].get("duration", 0))
 
-        # pull
-        reportitem, toadd = runandreporton(func=pullcommand, flags=args, pbar=progressbar)
-        report.append(reportitem)
-        progressbar.update(toadd)
-
-        if args.pull or args.norebase:
-            reportitem, toadd = runandreporton(func=pulldiffcommand, noprogressbar=True, flags=args, pbar=progressbar, printsuccess=False, customsuccess="  ✓ changes shown", printcmd=printdiff)
-            progressbar.update(toadd)
-            report.append(reportitem)
-            
-        # add
-        reportitem, toadd = runandreporton(func=stagecommand, flags=args, pbar=progressbar)
-        report.append(reportitem)
-        progressbar.update(toadd)
-
-        # diff
-        reportitem, toadd = runandreporton(func=diffcommand, noprogressbar=True, flags=args, pbar=progressbar)
-        report.append(reportitem)
-        progressbar.update(toadd)
-
-        # commit
-        reportitem, toadd = runandreporton(func=commitcommand, flags=args, pbar=progressbar)
-        progressbar.update(toadd)
-        report.append(reportitem)
-
-        spacer(pbar=progressbar)
-
-        if reportitem["output"] and reportitem["returncode"] == 0:
-            showcmd: List[str] = ["git", "show", "-s", "--pretty=format:%H|%an|%ad|%s"]
-            output = runcmd(showcmd, args, pbar=progressbar, printsuccess=False)
-            if output and output.returncode == 0:
-                showcommitresult(output, progressbar)
-            success("    ✓ comleted succesfully", progressbar)
-
-        spacer(pbar=progressbar)
-
-        # push
-        reportitem, toadd = runandreporton(func=pushcommand, flags=args, pbar=progressbar)
-        report.append(reportitem)
-        progressbar.update(toadd)
-
-        totaltime = time() - starttime
-        
         if args.report:
-            generatereport(report=report, totaltime=totaltime)
+            generatereport(report=pipeline.report, totaltime=totaltime)
         else:
-            generatereport(report=report, totaltime=totaltime, savetofile="report.txt")
-            spacer(pbar=progressbar)
-            info(message="report generated in report.txt", pbar=progressbar)
-            spacer(pbar=progressbar)
+            generatereport(report=pipeline.report, totaltime=totaltime, savetofile="report.txt")
+            spacer(pbar=pbar)
+            info(message="report generated in report.txt", pbar=pbar)
+            spacer(pbar=pbar)
 
-        completebar(progressbar, totalsteps)
+        completebar(pbar, totalsteps)
         
 def main() -> None:
     '''entry point'''
