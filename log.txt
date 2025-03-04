@@ -1,0 +1,38 @@
+
+report:
+step: update submodules
+  command: 
+  duration: 0.00000119 seconds
+
+step: update submodules
+  command: 
+  duration: 0.00000119 seconds
+
+step: update submodules
+  command: 
+  duration: 0.00000048 seconds
+
+step: update submodules
+  command: 
+  duration: 0.00000048 seconds
+
+step: update submodules
+  command: git add .
+  duration: 0.00251245 seconds
+
+step: update submodules
+  command: 
+  duration: 0.00000095 seconds
+
+step: update submodules
+  command: git commit -m look at this amazing log
+  duration: 0.01458097 seconds
+  output: [dev 97be251] look at this amazing log
+ 2 files changed, 41 insertions(+), 4 deletions(-)
+
+
+step: update submodules
+  command: git push
+  duration: 3.49589586 seconds
+
+total duration: 3.61833525 seconds

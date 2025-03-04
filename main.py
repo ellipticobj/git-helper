@@ -1,318 +1,257 @@
 from os import getcwd
+from time import time
 from tqdm import tqdm
 from sys import exit, argv
-from typing import List, Optional
-from colorama import Fore, Style, init
-from loaders import startloadinganimation, stoploadinganimation
+from collections.abc import Callable
+from colorama import init, Fore, Style
+from subprocess import CompletedProcess
 from argparse import ArgumentParser, Namespace
-from helpers import completebar, initcommands, validateargs, commithelper, pushhelper
-from loggers import success, error, info, printcmd, printinfo, printsteps
-from subprocess import list2cmdline, run as runsubprocess, CompletedProcess, CalledProcessError
+from typing import List, Optional, Final, Dict, Union, Tuple
+from loaders import startloadinganimation, stoploadinganimation, ThreadEventTuple
+from loggers import success, info, printinfo, spacer
+from helpers import completebar, initcommands, validateargs, pushcommand, statuscommand, submodulesupdatecommand, \
+    stashcommand, pullcommand, stagecommand, diffcommand, commitcommand, pulldiffcommand, runcmd, GITCOMMANDMESSAGES, \
+    incrementprogress
+
+'''
+main entry point
+
+file pipeline:
+loaders -> loggers -> helpers -> githandler -> main
+'''
 
 # initialize colorama
 init(autoreset=True)
 
-VERSION = "0.2.4"
+VERSION: Final[str] = "0.2.5-preview5"
 
-def pullhandler(args: Namespace) -> None:
-    '''handles git pull operations'''
-    pull: List[str] = ["git", "pull"]
-    if args.norebase:
-        pull.append("--no-rebase")
-    if args.pull or args.norebase:
-        if hasattr(args, 'mainpbar'): # checks of the main bar exists
-            runcmd(pull, args, mainpbar=args.mainpbar)
-        else:
-            runcmd(pull, args, args.cont, args.dry)
+KNOWNCMDS: List[str] = list(GITCOMMANDMESSAGES.keys())
 
-def parseoutput(result: CompletedProcess, flags: Namespace, pbar: tqdm, mainpbar: Optional[tqdm]):
-    outputstr = result.stdout.decode('utf-8', errors='replace').strip()
-    pbar.n = 80
-    pbar.refresh()
-    if outputstr:
-        if flags.verbose:
-            # output everything
-            info(f"    i {Fore.CYAN}{outputstr}", mainpbar)
-        else:
-            # check for specific outputs
-            if 'Everything up-to-date' in outputstr:
-                info(f"    i {Fore.CYAN}everything up-to-date", mainpbar)
-            elif 'nothing to commit' in outputstr:
-                info(f"    i {Fore.CYAN}nothing to commit", mainpbar)
-            elif 'create mode' in outputstr or 'delete mode' in outputstr:
-                # show additions/deletions
-                outputl = outputstr.split('\n')
-                for line in outputl:
-                    info(f"    i {Fore.BLACK}{outputl}", mainpbar)
-            elif len(outputstr) < 200:  # show short messages
-                if flags.message in outputstr: # dont duplicate commit message
-                    pass
-                else:
-                    info(f"    i {Fore.BLACK}{outputstr}", mainpbar)
+class PipelineStep:
+    '''step in the pipeline'''
+    def __init__(self, name: str, func: Callable[[Namespace, Optional[tqdm]], Tuple[int, List[str]]], nopbar: bool = False):
+        self.name = name
+        self.func = func
+        self.nopbar = nopbar
 
-def runcmdwithoutprogress(args: List[str], mainpbar: Optional[tqdm]) -> CompletedProcess[bytes]:
-    result = runsubprocess(args, check=True, cwd=getcwd(), capture_output=True)
-    # parse output
-    outputstr = result.stdout.decode('utf-8', errors='replace').strip()
-    if outputstr:
-        # check for specific outputs
-        if 'Everything up-to-date' in outputstr:
-            info(f"    i {Fore.CYAN}everything up to date", mainpbar)
-        elif 'nothing to commit' in outputstr:
-            info(f"    i {Fore.CYAN}nothing to commit", mainpbar)
-        elif len(outputstr) < 200:  # short messages
-            info(f"    i {Fore.BLACK}{outputstr}", mainpbar)
+    def execute(self, args: Namespace, pbar: Optional[tqdm]) -> Tuple[Dict[str, Union[str, float, int]], int]:
+        '''execute the step'''
+        start = time()
+        toadd, cmd = self.func(args, pbar=pbar) # type: ignore
 
-    success("  ✓ completed successfully", mainpbar)
-    return result
+        result: Optional[CompletedProcess[bytes]] = runcmd(
+            cmd=cmd,
+            flags=args,
+            pbar=pbar,
+            withprogress=not self.nopbar
+        )
+        duration = time() - start
+        report = {
+            "step": self.name,
+            "command": " ".join(cmd) if cmd else "",
+            "duration": duration,
+            "output": result.stdout.decode("utf-8", errors="replace") if result else "",
+            "returncode": result.returncode if result else ""
+        }
+        return report, toadd # type: ignore
+    
+class Pipeline:
+    '''pipeline'''
+    def __init__(self, args: Namespace, steps: List[PipelineStep], pbar: tqdm):
+        self.args = args
+        self.steps = steps
+        self.pbar = pbar
+        self.report: List[Dict[str, Union[str, float]]] = []
 
-def runcmd(args: List[str], flags: Namespace, mainpbar: Optional[tqdm] = None, showprogress: bool = True, keepbar: bool = False) -> Optional[CompletedProcess]:
-    '''executes a command with error handling'''
-    cwd: str = getcwd()
-    cmdstr: str = list2cmdline(args)
+    def run(self) -> None:
+        '''loops through items in self.steps and runs them'''
+        starttime = time()
+        for step in self.steps:
+            reportitem, toadd = step.execute(self.args, self.pbar)
+            with incrementprogress(self.pbar, by=toadd):
+                self.report.append(reportitem)
+        totaltime = time() - starttime
+        self.report.append({"step": "TOTAL", "duration": totaltime})
+        completebar(self.pbar, self.pbar.total)
 
-    if flags.dry:
-        printcmd(cmdstr, mainpbar)
-        return None
-
-    try:
-        info("  running command:", mainpbar)
-        printcmd(f"    $ {cmdstr}", mainpbar)
-
-        # capture output to parse relevant messages
-        cmdargs = args.copy()
-        result: Optional[CompletedProcess[bytes]] = None
-
-        if not showprogress:
-            result = runcmdwithoutprogress(cmdargs, mainpbar)
-            return result
-
-        with tqdm(total=100, desc=f"{Fore.CYAN}mrrping...{Style.RESET_ALL}", bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}', position=1, leave=keepbar) as pbar:
-            pbar.update(10)
-            animation = startloadinganimation(f"executing {" ".join(cmdargs)}...")
-
-            result = runsubprocess(cmdargs, check=True, cwd=cwd, capture_output=True)
-            pbar.n = 50
-            pbar.refresh()
-
-            stoploadinganimation(animation)
-
-            parseoutput(result, flags, pbar, mainpbar)
-
-            pbar.n = 100
-            pbar.colour = 'green'
-            pbar.refresh()
-            success("  ✓ completed successfully", mainpbar)
-
-            return result
-
-    except CalledProcessError as e:
-        error(f"\n❌ command failed with exit code {e.returncode}:", mainpbar)
-        printcmd(f"  $ {cmdstr}", mainpbar)
-
-        if e.stdout:
-            info(f"{Fore.BLACK}{e.stdout.decode('utf-8', errors='replace')}", mainpbar)
-
-        if e.stderr:
-            error(f"{Fore.RED}{e.stderr.decode('utf-8', errors='replace')}", mainpbar)
-
-        if not flags.cont:
-            exit(e.returncode)
-        else:
-            info(f"{Fore.CYAN}continuing...")
-        return None
-
-def checkargv(args: List[str], parser: ArgumentParser):
-    if len(args) != 1:
-        # fancy header
-        print(f"{Fore.MAGENTA}{Style.BRIGHT}meow {Style.RESET_ALL}{Fore.CYAN}v{VERSION}{Style.RESET_ALL}")
-
-    if len(args) == 1:
+def checkargv(
+        args: List[str], 
+        parser: ArgumentParser
+        ) -> None:
+    '''checks sys.argv before flags are parsed'''
+    if len(args) == 1: # prints help if user runs `meow`
         parser.print_help()
-        print()
-        print(f"current directory: {Style.BRIGHT}{getcwd()}")
+        print(f"\ncurrent directory: {Style.BRIGHT}{getcwd()}")
         exit(1)
-    elif len(args) == 2:
-        if argv[1] == "meow":
+    elif len(args) > 1:
+        if len(args) == 2 and args[1] == "meow":
             print(f"{Fore.MAGENTA}{Style.BRIGHT}meow meow :3{Style.RESET_ALL}")
             exit(0)
-        else:
-            print()
-            print(f"current directory: {Style.BRIGHT}{getcwd()}")
+        elif args[1] in KNOWNCMDS:
+            from githandler import handlegitcommands
+            handlegitcommands(args, GITCOMMANDMESSAGES)
+    return None
 
-def getsteps(args: Namespace) -> List[str]:
-    steps: List[str] = []
+def getsteps(args: Namespace) -> List[PipelineStep]:
+    '''gets the commands the program has to complete'''
+    steps: List[PipelineStep] = []
 
+    # get status
     if args.status:
-        steps.append("status check")
+        steps.append(PipelineStep("get status", statuscommand, nopbar=True))
 
+    # update submodules
     if args.updatesubmodules:
-        steps.append("update submodules")
+        steps.append(PipelineStep("update submodules", submodulesupdatecommand))
 
+    # stash
     if args.stash:
-        steps.append("stash changes")
-
+        steps.append(PipelineStep("stash changes", stashcommand))
+    
+    # pull
     if args.pull or args.norebase:
-        steps.append("pull from remote")
-
-    steps.append("stage changes")
-
+        steps.append(PipelineStep("pull from remote", pullcommand))
+        steps.append(PipelineStep("get pull diff", pulldiffcommand, nopbar=True))
+    
+    # stage changes
+    steps.append(PipelineStep("stage changes", stagecommand))
     if args.diff:
-        steps.append("show diff")
+        steps.append(PipelineStep("get diff", diffcommand, nopbar=True))
+    
+    # commit changes
+    steps.append(PipelineStep("commit changes", commitcommand))
 
-    steps.append("commit changes")
-
+    # push
     if not args.nopush:
-        steps.append("push to remote")
-
+        steps.append(PipelineStep("push changes", pushcommand))
+    
     return steps
 
-def checkstatus(args: Namespace, progressbar: tqdm) -> bool:
-    # status check
-    if args.status:
-        info(f"{Style.BRIGHT}status check{Style.RESET_ALL}", progressbar)
-        runcmd(["git", "status"], args, mainpbar=progressbar, showprogress=False)
-        progressbar.update(1)
-        return True
-    return False
+def generatereport(report: List[dict], totaltime: float, pbar: Optional[tqdm] = None, savetofile: Optional[str] = None) -> None:
+    '''generates a report of the pipeline'''
+    output: List[str] = []
+    output.append("\n")
+    output.append("report:\n")
+    for i, step in enumerate(report, start=1):
+        output.append(f"step: {step['step']}\n")
+        output.append(f"  command: {step.get('command', 'N/A')}\n")
+        output.append(f"  duration: {step['duration']:.8f} seconds\n")
+        if step.get("output"):
+            output.append(f"  output: {step['output']}\n")
+        if step.get("returncode"):
+            output.append(f"  return code: {step['returncode']}\n")
+        output.append("\n")
+    output.append(f"total duration: {totaltime:.8f} seconds\n")
 
-def updatesubmodules(args: Namespace, progressbar: tqdm) -> bool:
-    if args.updatesubmodules:
-        info(f"\n{Style.BRIGHT}updating submodules{Style.RESET_ALL}", progressbar)
-        runcmd(["git", "submodule", "update", "--init", "--recursive"], args, mainpbar=progressbar)
-        progressbar.update(1)
-        return True
-    return False
+    if savetofile:
+        with open(savetofile, 'w') as f:
+            for line in output:
+                f.write(line)
+    else:
+        for line in output:
+            info(message=line, pbar=pbar)
 
-def stashchanges(args: Namespace, progressbar: tqdm) -> bool:
-    if args.stash:
-        info(f"\n{Style.BRIGHT}stashing changes{Style.RESET_ALL}", progressbar)
-        runcmd(["git", "stash"], args, mainpbar=progressbar)
-        progressbar.update(1)
-        return True
-    return False
+def displayheader() -> None:
+    '''displays header'''
+    print(f"{Fore.MAGENTA}{Style.BRIGHT}meow {Style.RESET_ALL}{Fore.CYAN}v{VERSION}{Style.RESET_ALL}")
+    print(f"\ncurrent directory: {Style.BRIGHT}{getcwd()}\n")
 
-def pull(args: Namespace, progressbar: tqdm) -> bool:
-    if args.pull or args.norebase:
-        info(f"\n{Style.BRIGHT}pulling from remote{Style.RESET_ALL}",progressbar)
-        # create a copy of args with the progress bar added
-        args.mainpbar = progressbar
-        pullhandler(args)
-        progressbar.update(1)
-        return True
-    return False
+def displaysteps(steps: List[PipelineStep]) -> None:
+    '''displays the steps'''
+    print(f"\n{Fore.CYAN}{Style.BRIGHT}meows to meow:{Style.RESET_ALL}")
 
-def stage(args: Namespace, progressbar: tqdm) -> None:
-    info(f"\n{Style.BRIGHT}staging changes{Style.RESET_ALL}", progressbar)
-    addcmd: List[str] = ["git", "add", *args.add] if args.add else ["git", "add", "."]
-    if args.verbose and not args.quiet:
-        addcmd.append("--verbose")
-    runcmd(addcmd, args, mainpbar=progressbar)
-    progressbar.update(1)
+    i: int
+    step: PipelineStep
+    for i, step in enumerate(steps, 1): 
+        print(f"  {Fore.BLUE}{i}.{Style.RESET_ALL} {Fore.BLACK}{step.name}{Style.RESET_ALL}")
+    print()
 
-def diff(args: Namespace, progressbar: tqdm) -> bool:
-    if args.diff:
-        info(f"\n{Style.BRIGHT}showing diff{Style.RESET_ALL}", progressbar)
-        runcmd(["git", "diff", "--staged"], args, showprogress=False, mainpbar=progressbar)
-        progressbar.update(1)
-        return True
-    return False
+def runandreporton(
+        func: Callable, 
+        stepname: str,
+        flags: Namespace, 
+        pbar: Optional[tqdm], 
+        nopbar: bool = False, 
+        printsuccess: bool = True, 
+        customsuccess: str = "", 
+        printcmd: Optional[Callable] = None
+        ) -> Tuple[ Dict[str, Union[str, float, List[str]]], int]:
+    '''
+    runs a command returned by func, 
+    and returns a tuple with the report generated, and the number of steps completed
+    '''
+    toadd: int
+    cmd: List[str]
+    stepstart: float = time()
+    output: Optional[CompletedProcess[bytes]]
+    toadd, cmd = func(flags, pbar=pbar)
+    if nopbar:
+        output = runcmd(cmd=cmd, flags=flags, pbar=pbar, printsuccess=printsuccess)
+    else:
+        output = runcmd(cmd=cmd, pbar=pbar, printsuccess=printsuccess, withprogress=False)
+    if output and printcmd:
+        outputstr: str = output.stdout.decode('utf-8', errors='replace').strip()
+        printcmd(outputstr, pbar)
+        success(customsuccess, pbar)
+            
+    duration = time() - stepstart
+    return {
+        "step": stepname,
+        "command": " ".join(cmd) if cmd else "",
+        "duration": duration,
+        "output": output.stdout.decode('utf-8', errors='replace') if output else "",
+        "returncode": output.returncode if output else ""
+    }, toadd
 
-def commit(args: Namespace, progressbar: tqdm) -> None:
-    info(f"\n{Style.BRIGHT}committing{Style.RESET_ALL}", progressbar)
-    commit = commithelper(args)
-    runcmd(commit, args, mainpbar=progressbar)
-    progressbar.update(1)
+def runpipeline(args: Namespace) -> None:
+    # show pipeline overview
+    steps = getsteps(args)
+    totalsteps: int = len(steps)
 
-def push(push: Optional[List[str]], args: Namespace, progressbar: tqdm) -> bool:
-    if push:
-        info(f"\n{Style.BRIGHT}pushing to remote{Style.RESET_ALL}", progressbar)
-        runcmd(push, args, mainpbar=progressbar)
-        progressbar.update(1)
-        return True
-    return False
+    displaysteps(steps)
 
+    # execute pipeline
+    with tqdm(total=len(steps), desc=f"{Fore.RED}meowing...{Style.RESET_ALL}", bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}', position=0, leave=True) as pbar:
+        pipeline = Pipeline(args, steps, pbar)
+        pipeline.run()
+
+        totaltime: int = int(pipeline.report[-1].get("duration", 0))
+
+        if args.report:
+            generatereport(report=pipeline.report, totaltime=totaltime)
+        else:
+            generatereport(report=pipeline.report, totaltime=totaltime, savetofile="report.txt")
+            spacer(pbar=pbar)
+            info(message="report generated in report.txt", pbar=pbar)
+            spacer(pbar=pbar)
+
+        completebar(pbar, totalsteps)
+        
 def main() -> None:
-    # start animatior before initialization
-    animation = startloadinganimation("initializing...")
-
+    '''entry point'''
     # init
     parser: ArgumentParser = ArgumentParser(
         prog="meow",
         epilog=f"{Fore.MAGENTA}{Style.BRIGHT}meow {Style.RESET_ALL}{Fore.CYAN}v{VERSION}{Style.RESET_ALL}"
     )
     initcommands(parser)
-
-    # get args
-    args: Namespace = parser.parse_args()
-
-    # stop the animation after initialization
-    stoploadinganimation(animation)
-
     checkargv(argv, parser)
+    args: Namespace = parser.parse_args()
+    displayheader()
 
     if args.dry:
-        print(f"{Fore.MAGENTA}{Style.BRIGHT}dry run{Style.RESET_ALL}")
-
+        print(f"\n{Fore.MAGENTA}{Style.BRIGHT}dry run{Style.RESET_ALL}")
     if args.version:
         printinfo(VERSION)
 
     validateargs(args)
 
-    animation = startloadinganimation("preparing...")
+    preparinganimation: ThreadEventTuple = startloadinganimation("preparing...")
+    stoploadinganimation(preparinganimation)
+    del preparinganimation
 
-    # display pipeline steps
-    steps = getsteps(args)
+    runpipeline(args=args)
 
-    stoploadinganimation(animation)
-
-    # show pipeline overview
-    print(f"\n{Fore.CYAN}{Style.BRIGHT}meows to meow:{Style.RESET_ALL}")
-
-    printsteps(steps)
-
-    # execute pipeline
-    with tqdm(total=len(steps), desc=f"{Fore.MAGENTA}meowing...{Style.RESET_ALL}", bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}', position=0, leave=True) as progressbar:
-        completedsteps = 0
-        totalsteps = len(steps)
-
-        # statuscheck
-        if checkstatus(args, progressbar):
-            completedsteps += 1
-
-        # update submodules
-        if updatesubmodules(args, progressbar):
-            completedsteps += 1
-
-        # stash changes
-        if stashchanges(args, progressbar):
-            completedsteps += 1
-
-        # pull
-        if pull(args, progressbar):
-            completedsteps += 1
-
-        # stage changes
-        stage(args, progressbar)
-        completedsteps += 1
-
-        # diff
-        if diff(args, progressbar):
-            completedsteps += 1
-
-        # commit
-        commit(args, progressbar)
-        completedsteps += 1
-
-        # push
-        pushl: Optional[List[str]] = pushhelper(args)
-        if push(pushl, args, progressbar):
-            completedsteps += 1
-
-        # complete progressbar
-        completebar(progressbar, totalsteps)
-
-    # success message
     print("\n😺")
 
 if __name__ == "__main__":

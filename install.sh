@@ -22,7 +22,7 @@ INSTALL_PATH="/usr/bin/"
 # helpers
 # ------------------------------------
 error_exit() {
-    echo "error: $1" >&2
+    echo -e "error: $1" >&2
     exit 1
 }
 
@@ -104,12 +104,15 @@ DOWNLOAD_URL="https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${
 # check if the file exists at the URL before downloading
 HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${DOWNLOAD_URL}")
 
-if [[ "${HTTP_STATUS}" -ne 302 ]]; then
-    error_exit "executable not found at ${DOWNLOAD_URL} (HTTP ${HTTP_STATUS})\nuse ./install.sh --local to build locally or manually download from https://github.com/${REPO_OWNER}/${REPO_NAME}"
-fi
-
 echo "downloading executable from $DOWNLOAD_URL"
 curl -L -o "${EXEC_NAME}" "$DOWNLOAD_URL" || error_exit "download failed"
+
+FILESIZE=$(wc -c < "${EXEC_NAME}")
+if [ "$FILESIZE" -lt 1048576 ]; then
+    echo "error: downloaded file is ${FILESIZE} bytes (smaller than 1mb). the executable may not exist for your architecture."
+    rm -f "${EXEC_NAME}"
+    error_exit "executable not found on remote"
+fi
 
 # installs the file
 chmod +x "$EXEC_NAME"

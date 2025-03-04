@@ -1,10 +1,12 @@
 # meow
-a git wrapper made in python
-
-development takes place on the dev branch, main is for prod
+a git wrapper made in python  
+currently very buggy :(  
+development takes place on the dev branch, main is for prod  
 
 ## installation
-run this: (unsure if it works)
+this is currently only for linux arm64 systems.  
+
+run this to install the latest release: (untested for now)
 ```
 curl -fsSL "https://raw.githubusercontent.com/ellipticobj/meower/refs/heads/main/install.sh" | sh
 ```
@@ -15,6 +17,10 @@ or download the latest file from [github releases](https://github.com/ellipticob
 run `meow` to get detailed help
 
 ## building/installing locally
+anyone can do this!  
+
+in the cloned repository, 
+
 download dependencies:
 ```
 pip install -r requirements.txt
