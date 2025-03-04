@@ -2,21 +2,21 @@
 report:
 step: stage changes
   command: git add .
-  duration: 0.10227394 seconds
+  duration: 0.10202193 seconds
 
 step: commit changes
-  command: git commit -m fixed bug with pulling
-  duration: 0.10277367 seconds
-  output: [main 3c53919] fixed bug with pulling
- 1 file changed, 2 insertions(+), 1 deletion(-)
+  command: git commit -m switch v1
+  duration: 0.10298038 seconds
+  output: [main 4c25dba] switch v1
+ 1 file changed, 14 insertions(+), 31 deletions(-)
 
 
 step: push changes
   command: git push
-  duration: 2.80920053 seconds
+  duration: 2.81257415 seconds
 
 step: TOTAL
   command: N/A
-  duration: 3.01528502 seconds
+  duration: 3.02198243 seconds
 
 total duration: 3.00000000 seconds
