@@ -29,6 +29,7 @@ GITCOMMANDMESSAGES: Dict[str, str] = {
     'pull': 'pulling...',
     'clone': 'cloning...',
     'fetch': 'fetching...',
+    'branch': 'branching...',
     'commit': 'committing...',
     'diff': 'showing diffs...',
     'status': 'checking repo status...'
@@ -268,7 +269,7 @@ def getgitcommands(
     #     pass
     elif gitcommand == "pull":
         precmd = []
-        cmd = ["git", "pull"] + commandarguments + ["--autostash", ""]
+        cmd = ["git", "pull"] + commandarguments + ["--autostash"]
     elif gitcommand == "clone":
         precmd = []
         cmd = ["git", "clone"] + commandarguments + ["--verbose", "--recursive", "--remote-submodules"]
