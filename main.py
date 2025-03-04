@@ -166,6 +166,24 @@ def runcmd(
         error(f"{Fore.CYAN}user interrupted", progressbar)
         return None
 
+def checkargv(
+        args: List[str], 
+        parser: ArgumentParser
+        ) -> None:
+    '''checks sys.argv before flags are parsed'''
+    if len(args) == 1: # prints help if user runs `meow`
+        parser.print_help()
+        print(f"\ncurrent directory: {Style.BRIGHT}{getcwd()}")
+        exit(1)
+    elif len(args) > 1:
+        if len(args) == 2 and args[1] == "meow":
+            print(f"{Fore.MAGENTA}{Style.BRIGHT}meow meow :3{Style.RESET_ALL}")
+            exit(0)
+        elif args[1] in KNOWNCMDS:
+            from githandler import handlegitcommands
+            handlegitcommands(args, GITCOMMANDMESSAGES)
+    return None
+
 def getsteps(args: Namespace) -> List[str]:
     '''gets the commands the program has to complete'''
     steps: List[str] = []
@@ -186,17 +204,28 @@ def getsteps(args: Namespace) -> List[str]:
         steps.append("push to remote")
     return steps
 
-def generatereport(report: List[dict], totaltime: float) -> None:
+def generatereport(report: List[dict], totaltime: float, pbar: Optional[tqdm] = None, savetofile: Optional[str] = None) -> None:
     '''generates a report of the pipeline'''
-    print("\nreport:")
+    # TODO: use info() instead of print()
+    output: List[str] = []
+    output.append("")
+    output.append("report:")
     for i, step in enumerate(report, start=1):
-        print(f"step: {step['step']}")
-        print(f"  command: {step.get('command', 'N/A')}")
-        print(f"  duration: {step['duration']:.2f} seconds")
+        output.append(f"step: {step['step']}")
+        output.append(f"  command: {step.get('command', 'N/A')}")
+        output.append(f"  duration: {step['duration']:.2f} seconds")
         if step.get("output"):
-            print(f"  output: {step['output']}")
-        print()
-    print(f"total duration: {totaltime:.2f} seconds")
+            output.append(f"  output: {step['output']}")
+        output.append("")
+    output.append(f"total duration: {totaltime:.2f} seconds")
+
+    if savetofile:
+        with open(savetofile, 'w') as f:
+            for line in output:
+                f.write(line)
+    else:
+        for line in output:
+            print(line)
 
 def displayheader() -> None:
     '''displays header'''
@@ -220,6 +249,7 @@ def runpipeline(args: Namespace) -> None:
     toadd: int
     cmd: List[str]
 
+    # TODO: make a function prevent repitition of code
     # execute pipeline
     with tqdm(total=len(steps), desc=f"{Fore.RED}meowing...{Style.RESET_ALL}", bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}', position=0, leave=True) as progressbar:
         # status
@@ -357,29 +387,16 @@ def runpipeline(args: Namespace) -> None:
             "output": output.stdout.decode('utf-8', errors='replace') if output else ""
         })
 
-        endtime = time()
-
-        generatereport(report=report, totaltime=starttime-endtime)
+        totaltime = time() - starttime
         
-        completebar(progressbar, totalsteps)
+        if args.report:
+            generatereport(report=report, totaltime=totaltime)
+        else:
+            generatereport(report=report, totaltime=totaltime, savetofile="report.txt")
+            info(message="report generated in report.txt", pbar=progressbar)
 
-def checkargv(
-        args: List[str], 
-        parser: ArgumentParser
-        ) -> None:
-    '''checks sys.argv before flags are parsed'''
-    if len(args) == 1: # prints help if user runs `meow`
-        parser.print_help()
-        print(f"\ncurrent directory: {Style.BRIGHT}{getcwd()}")
-        exit(1)
-    elif len(args) > 1:
-        if len(args) == 2 and args[1] == "meow":
-            print(f"{Fore.MAGENTA}{Style.BRIGHT}meow meow :3{Style.RESET_ALL}")
-            exit(0)
-        elif args[1] in KNOWNCMDS:
-            from githandler import handlegitcommands
-            handlegitcommands(args, GITCOMMANDMESSAGES)
-    return None
+        completebar(progressbar, totalsteps)
+        
 def main() -> None:
     '''entry point'''
     # init

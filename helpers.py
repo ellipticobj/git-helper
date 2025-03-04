@@ -58,6 +58,7 @@ def initcommands(parser: ArgumentParser) -> None:
     advancedgrp: _ArgumentGroup = parser.add_argument_group("advanced options")
     advancedgrp.add_argument("--update-submodules", dest="updatesubmodules", action='store_true', help="update submodules recursively")
     advancedgrp.add_argument("--stash", action='store_true', help="stash changes before pull")
+    advancedgrp.add_argument("--report", action='store_true', help="generate and output a report after everything is run") # TODO: add option to save to file, and to specify filename
 
 def parseupstreamargs(
         args: Namespace, 
