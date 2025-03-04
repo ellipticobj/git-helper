@@ -114,23 +114,23 @@ def _getpullcommand(args: Namespace) -> List[str]:
 def pushcommand(
         args: Namespace,
         progressbar: Optional[tqdm]
-        ) -> List[str]:
+        ) -> Tuple[int, List[str]]:
     '''adds flags to the push command'''
     info("pushing to remote", progressbar)
     if not args.nopush:
-        push: List[str] = ["git", "push"]
+        pushcmd: List[str] = ["git", "push"]
         if args.tags:
-            push.append("--tags")
+            pushcmd.append("--tags")
         if args.upstream:
-            push = parseupstreamargs(args, push)
+            pushcmd = parseupstreamargs(args, pushcmd)
         if args.force:
-            push.append("--force")
+            pushcmd.append("--force")
         if args.quiet:
-            push.append("--quiet")
+            pushcmd.append("--quiet")
         elif args.verbose:
-            push.append("--verbose")
-        return push
-    return []
+            pushcmd.append("--verbose")
+        return 1, pushcmd
+    return 1, []
 
 def statuscommand(
         args: Namespace, 

@@ -19,7 +19,7 @@ main entry point
 # initialize colorama
 init(autoreset=True)
 
-VERSION: Final[str] = "0.2.5-preview3a"
+VERSION: Final[str] = "0.2.5-preview4"
 GITCOMMANDMESSAGES: Dict[str, str] = {
     'log': 'q to exit: ',
     'add': 'staging...',
