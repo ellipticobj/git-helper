@@ -226,6 +226,7 @@ def generatereport(report: List[dict], totaltime: float, pbar: Optional[tqdm] = 
     if savetofile:
         with open(savetofile, 'w') as f:
             for line in output:
+                print(line)
                 f.write(line)
     else:
         for line in output:
