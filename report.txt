@@ -1,0 +1,21 @@
+
+report:
+step: stage changes
+  command: git add .
+  duration: 0.10107851 seconds
+
+step: commit changes
+  command: git commit -m added files 
+  duration: 0.00331068 seconds
+
+step: push changes
+  command: git push --set-upstream origin v1
+  duration: 3.10756421 seconds
+  output: branch 'v1' set up to track 'origin/v1'.
+
+
+step: TOTAL
+  command: N/A
+  duration: 3.21255279 seconds
+
+total duration: 3.00000000 seconds

@@ -2,6 +2,8 @@
 a git wrapper made in python  
 version 1!!! major (work in progress) rewrite of the code, with better organization.  
 
+# on hold
+
 ## installation
 this is currently only for linux arm64 systems.  
 
