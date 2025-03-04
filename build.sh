@@ -26,9 +26,9 @@ python -m PyInstaller \
     --hidden-import=helpers \
     --hidden-import=loaders \
     --hidden-import=loggers \
-    --add-binary "./temp/helpers*.so:." \
-    --add-binary "./temp/loaders*.so:." \
-    --add-binary "./temp/loggers*.so:." \
+    --add-binary "./helpers*.so:." \
+    --add-binary "./loaders*.so:." \
+    --add-binary "./loggers*.so:." \
     --optimize 2
 
 strip --strip-all dist/meow
