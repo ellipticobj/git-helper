@@ -44,7 +44,7 @@ setup(
         },
     ),
     url="https://github.com/ellipticobj/meower",
-    download_url="https://github.com/ellipticobj/releases/latest",
+    download_url="https://github.com/ellipticobj/meower/releases/latest",
     author="luna",
     author_email="luna@hackclub.app",
 

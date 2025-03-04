@@ -4,13 +4,13 @@ from tqdm import tqdm
 from sys import exit, argv
 from collections.abc import Callable
 from colorama import init, Fore, Style
+from subprocess import CompletedProcess
 from argparse import ArgumentParser, Namespace
 from typing import List, Optional, Final, Dict, Union, Tuple
 from loaders import startloadinganimation, stoploadinganimation, ThreadEventTuple
-from subprocess import list2cmdline, run as runsubprocess, CompletedProcess, CalledProcessError
-from loggers import success, error, info, printcmd, printinfo, printoutput, showcommitresult, printsteps, printdiff, spacer
+from loggers import success, info, printinfo, showcommitresult, printsteps, printdiff, spacer
 from helpers import completebar, initcommands, validateargs, pushcommand, statuscommand, submodulesupdatecommand, \
-    stashcommand, pullcommand, stagecommand, diffcommand, commitcommand, pulldiffcommand
+    stashcommand, pullcommand, stagecommand, diffcommand, commitcommand, pulldiffcommand, runcmd, GITCOMMANDMESSAGES
 
 '''
 main entry point
@@ -20,157 +20,8 @@ main entry point
 init(autoreset=True)
 
 VERSION: Final[str] = "0.2.5-preview4"
-GITCOMMANDMESSAGES: Dict[str, str] = {
-    'log': 'q to exit: ',
-    'add': 'staging...',
-    'push': 'pushing...',
-    'pull': 'pulling...',
-    'clone': 'cloning...',
-    'fetch': 'fetching...',
-    'commit': 'committing...',
-    'diff': 'showing diffs...',
-    'status': 'checking repo status...'
-}
+
 KNOWNCMDS: List[str] = list(GITCOMMANDMESSAGES.keys())
-
-MinimalNamespace = Namespace(
-    cont=False, 
-    dry=False, 
-    verbose=True, 
-    quiet=False, 
-    mainpbar=None
-)
-
-def suggestfix(errormsg: str) -> str: # TODO: add more
-    msg = errormsg.lower()
-    feedback: List[str] = []
-    if "non-fast-forward" in msg or "rejected" in msg:
-        feedback.append("try running `git pull` before pushing, or use --force")
-    if "permission denied" in msg:
-        feedback.append("check your ssh keys or credentials")
-    if "Already up to date." in msg:
-        feedback.append(f"    i {Fore.CYAN}everything up to date")
-    if "nothing to commit" in msg:
-        feedback.append(f"    i {Fore.CYAN}nothing to commit")
-    if "Changes not staged for commit:":
-        feedback.append(f"    i {Fore.CYAN}there are unstaged changes") # TODO: find out how to print unstaged files
-    
-    return "\n".join(feedback)
-
-def runcmdwithoutprogress(
-        cmd: List[str], 
-        mainpbar: Optional[tqdm], 
-        captureoutput: bool = True,
-        printoutput: bool = True,
-        printsuccess: bool = True
-        ) -> Optional[CompletedProcess[bytes]]:
-    '''runs command without progressbar'''
-    if not cmd:
-        return None
-    
-    result: CompletedProcess[bytes] = runsubprocess(cmd, check=True, cwd=getcwd(), capture_output=captureoutput)
-    outputstr: str = result.stdout.decode('utf-8', errors='replace').strip()
-    if outputstr and printoutput:
-        info(suggestfix(outputstr), mainpbar)
-    if printsuccess:
-        success("  ✓ completed successfully", mainpbar)
-    return result
-
-def runcmd(  # TODO: merge runcmd and runcmdwithout progress to prevent unnecessary duplicates
-        cmd: List[str],  # TODO: merge this runcmd and githandler's runcmd
-        flags: Namespace = MinimalNamespace, 
-        progressbar: Optional[tqdm] = None, 
-        keepbar: bool = False, 
-        captureoutput: bool = True,
-        printsuccess: bool = True
-        ) -> Optional[CompletedProcess[bytes]]:
-    '''executes a command with error handling'''
-    if not cmd:  # if command is empty, exit immediately
-        return None
-
-    interactive = (cmd[0] == "git" and cmd[1] == "commit" and len(cmd) == 2)
-    if interactive:
-        # dont capture output for interactive commands so that git can use the terminal properly.
-        captureoutput = False
-        if progressbar:
-            progressbar.clear()  # clear the main progress bar output
-
-    currentdirectory: str = getcwd()
-    cmdstr: str = list2cmdline(cmd)
-    if flags.dry:
-        printcmd(cmdstr, progressbar)
-        return None
-
-    try:
-        info("    running command:", progressbar)
-        printcmd(f"      $ {cmdstr}", progressbar)
-        cmdargs: List[str] = cmd.copy()
-        result: Optional[CompletedProcess[bytes]] = None
-
-        # run git log without the extras
-        if len(cmd) > 1 and cmd[1] == "log":
-            result = runsubprocess(cmd, check=False)
-            return result
-
-        if interactive: # run the interactive command without mrrping progress bar
-            result = runsubprocess(cmdargs, check=True, cwd=currentdirectory, capture_output=captureoutput)
-            if result and progressbar: # use the passed mainpbar for any output display
-                printoutput(result, flags, progressbar, progressbar)
-            return result
-        
-        # show a per command progress bar and loader
-        basecmd: str = cmd[1] if len(cmd) > 1 else ''
-        defaultmsg: str = f"executing {cmdstr}..."
-        loadingmsg: str = GITCOMMANDMESSAGES.get(basecmd, defaultmsg)
-
-        with tqdm(
-            total=100, 
-            desc=f"{Fore.CYAN}mrrping...{Style.RESET_ALL}", 
-            bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}', 
-            position=1, 
-            leave=keepbar
-        ) as pbar:
-            pbar.update(10)
-            animation = startloadinganimation(loadingmsg)
-            result = runsubprocess(cmdargs, check=True, cwd=currentdirectory, capture_output=captureoutput)
-            pbar.n = 50
-            pbar.refresh()
-
-            stoploadinganimation(animation)
-            if result:
-                printoutput(result, flags, pbar, progressbar)
-
-            pbar.n = 100
-            pbar.colour = 'green'
-            pbar.refresh()
-            if printsuccess:
-                success("    ✓ completed successfully", progressbar)
-            return result
-    except CalledProcessError as e:
-        # update the main progress bar to red before exiting.
-        if progressbar is not None:
-            progressbar.colour = 'magenta'
-            progressbar.refresh()
-        
-        error(f"\n❌ command failed with exit code {e.returncode}:", progressbar)
-        printcmd(f"  $ {cmdstr}", progressbar)
-        outstr: str = e.stdout.decode('utf-8', errors='replace') if e.stdout else ""
-        errstr: str = e.stderr.decode('utf-8', errors='replace') if e.stderr else ""
-        if outstr:
-            info(f"{Fore.BLACK}{outstr}", progressbar)
-        if errstr:
-            error(f"{Fore.RED}{errstr}", progressbar)
-            suggestion = suggestfix(errstr)
-            if suggestion:
-                error(suggestion, progressbar)
-        if not flags.cont:
-            exit(e.returncode)
-        else:
-            info(f"{Fore.CYAN}continuing...", progressbar)
-        return None
-    except KeyboardInterrupt:
-        error(f"{Fore.CYAN}user interrupted", progressbar)
-        return None
 
 def checkargv(
         args: List[str], 
@@ -263,9 +114,9 @@ def runandreporton(
     output: Optional[CompletedProcess[bytes]]
     toadd, cmd = func(flags, progressbar=pbar)
     if noprogressbar:
-        output = runcmd(cmd=cmd, flags=flags, progressbar=pbar, printsuccess=printsuccess)
+        output = runcmd(cmd=cmd, flags=flags, pbar=pbar, printsuccess=printsuccess)
     else:
-        output = runcmdwithoutprogress(cmd=cmd, mainpbar=pbar, printsuccess=printsuccess)
+        output = runcmd(cmd=cmd, pbar=pbar, printsuccess=printsuccess, withprogress=False)
     if output and printcmd:
         outputstr: str = output.stdout.decode('utf-8', errors='replace').strip()
         printcmd(outputstr, pbar)
@@ -291,7 +142,6 @@ def runpipeline(args: Namespace) -> None:
 
     displaysteps(steps)
 
-    # TODO: make a function prevent repitition of code
     # execute pipeline
     with tqdm(total=len(steps), desc=f"{Fore.RED}meowing...{Style.RESET_ALL}", bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}', position=0, leave=True) as progressbar:
         # status
@@ -338,7 +188,7 @@ def runpipeline(args: Namespace) -> None:
 
         if reportitem["output"] and reportitem["returncode"] == 0:
             showcmd: List[str] = ["git", "show", "-s", "--pretty=format:%H|%an|%ad|%s"]
-            output = runcmd(showcmd, args, progressbar=progressbar, printsuccess=False)
+            output = runcmd(showcmd, args, pbar=progressbar, printsuccess=False)
             if output and output.returncode == 0:
                 showcommitresult(output, progressbar)
             success("    ✓ comleted succesfully", progressbar)

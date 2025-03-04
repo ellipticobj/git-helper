@@ -56,7 +56,7 @@ def printsteps(steps: List[str]) -> None:
         print(f"  {Fore.BLUE}{i}.{Style.RESET_ALL} {Fore.BLACK}{step}{Style.RESET_ALL}")
     print()
 
-def printdiff(outputstr: str, pbar: tqdm) -> None:
+def printdiff(outputstr: str, pbar: Optional[tqdm]) -> None:
     additions = 0
     deletions = 0
     files = []
@@ -90,7 +90,7 @@ def printdiff(outputstr: str, pbar: tqdm) -> None:
 def printoutput(
         result: CompletedProcess[bytes], 
         flags: Namespace, 
-        pbar: tqdm, 
+        pbar: Optional[tqdm], 
         mainpbar: Optional[tqdm]
         ) -> None:
     '''prints commands output'''
@@ -100,8 +100,9 @@ def printoutput(
         printdiff(outputstr=outputstr, pbar=pbar)
         return
     
-    pbar.n = 80
-    pbar.refresh()
+    if pbar:
+        pbar.n = 80
+        pbar.refresh()
 
     if outputstr:
         if flags.verbose:

@@ -1,12 +1,36 @@
 from sys import exit
+from os import getcwd
 from tqdm import tqdm
-from loggers import error, info
-from typing import List, Tuple, Optional
+from colorama import Style, Fore
+from typing import List, Tuple, Optional, Dict
 from argparse import ArgumentParser, _ArgumentGroup, Namespace
+from loggers import error, info, success, printcmd, printoutput
+from loaders import startloadinganimation, stoploadinganimation
+from subprocess import list2cmdline, run as runsubprocess, CompletedProcess, CalledProcessError
 
 '''
 helpers
 '''
+
+MinimalNamespace = Namespace(
+    cont=False, 
+    dry=False, 
+    verbose=True, 
+    quiet=False, 
+    mainpbar=None
+)
+
+GITCOMMANDMESSAGES: Dict[str, str] = {
+    'log': 'q to exit: ',
+    'add': 'staging...',
+    'push': 'pushing...',
+    'pull': 'pulling...',
+    'clone': 'cloning...',
+    'fetch': 'fetching...',
+    'commit': 'committing...',
+    'diff': 'showing diffs...',
+    'status': 'checking repo status...'
+}
 
 def completebar(pbar: tqdm, totalsteps: int) -> None:
     '''fills up pbar and makes it green'''
@@ -249,3 +273,127 @@ def getgitcommands(
         cmd = ["git", gitcommand] + commandarguments
     
     return precmd, cmd
+
+def suggestfix(errormsg: str) -> str: # TODO: add more
+    msg = errormsg.lower()
+    feedback: List[str] = []
+    if "non-fast-forward" in msg or "rejected" in msg:
+        feedback.append("try running `git pull` before pushing, or use --force-with-lease")
+    if "permission denied" in msg:
+        feedback.append("check your ssh keys or credentials")
+    if "Already up to date." in msg:
+        feedback.append(f"    i {Fore.CYAN}everything up to date")
+    if "nothing to commit" in msg:
+        feedback.append(f"    i {Fore.CYAN}nothing to commit")
+    if "Changes not staged for commit:":
+        feedback.append(f"    i {Fore.CYAN}there are unstaged changes") # TODO: find out how to print unstaged files
+    
+    return "\n".join(feedback)
+
+def runcmd(
+    cmd: List[str],
+    flags: Namespace = MinimalNamespace,
+    pbar: Optional[tqdm] = None,
+    withprogress: bool = True,
+    captureoutput: bool = True,
+    printsuccess: bool = True,
+    isinteractive: Optional[bool] = None
+) -> Optional[CompletedProcess[bytes]]:
+    """
+    Executes a command with error handling. When with_progress is True, it uses a progress bar and a loading animation.
+    Otherwise, it runs the command directly without additional UI.
+    """
+    if not cmd:
+        return None
+
+    # check if this is an interactive command
+    interactive = (cmd[0] == "git" and cmd[1] == "commit" and len(cmd) == 2)
+    if isinteractive is not None:
+        interactive = interactive
+        if (cmd[0] == "git" and cmd[1] == "commit" and len(cmd) == 2):
+            interactive = True
+
+    if interactive:
+        captureoutput = False
+        if pbar:
+            pbar.clear()
+
+    currentdirectory: str = getcwd()
+    cmdstr: str = list2cmdline(cmd)
+    if flags.dry:
+        printcmd(cmdstr, pbar)
+        return None
+
+    try:
+        info("    running command:", pbar)
+        printcmd(f"      $ {cmdstr}", pbar)
+        cmdargs: List[str] = cmd.copy()
+        result: Optional[CompletedProcess[bytes]] = None
+
+        if len(cmd) > 1 and cmd[1] == "log":
+            result = runsubprocess(cmd, check=False)
+            return result
+
+        if interactive:
+            result = runsubprocess(cmdargs, check=True, cwd=currentdirectory, capture_output=captureoutput)
+            if result and pbar:
+                printoutput(result, flags, pbar, pbar)
+            return result
+
+        if not withprogress:
+            result = runsubprocess(cmdargs, check=True, cwd=currentdirectory, capture_output=captureoutput)
+            if result:
+                printoutput(result, flags, pbar, pbar)
+            if printsuccess:
+                success("    ✓ completed successfully", pbar)
+            return result
+
+        basecmd: str = cmd[1] if len(cmd) > 1 else ''
+        defaultmsg: str = f"executing {cmdstr}..."
+        loadingmsg: str = GITCOMMANDMESSAGES.get(basecmd, defaultmsg)
+
+        with tqdm(
+            total=100,
+            desc=f"{Fore.CYAN}mrrping...{Style.RESET_ALL}",
+            bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}',
+            position=1,
+            leave=False
+        ) as inner_pbar:
+            inner_pbar.update(10)
+            animation = startloadinganimation(loadingmsg)
+            result = runsubprocess(cmdargs, check=True, cwd=currentdirectory, capture_output=captureoutput)
+            inner_pbar.n = 50
+            inner_pbar.refresh()
+
+            stoploadinganimation(animation)
+            if result:
+                printoutput(result, flags, inner_pbar, pbar)
+            inner_pbar.n = 100
+            inner_pbar.colour = 'green'
+            inner_pbar.refresh()
+            if printsuccess:
+                success("    ✓ completed successfully", pbar)
+            return result
+    except CalledProcessError as e:
+        if pbar is not None:
+            pbar.colour = 'magenta'
+            pbar.refresh()
+        error(f"\n❌ command failed with exit code {e.returncode}:", pbar)
+        printcmd(f"  $ {cmdstr}", pbar)
+        outstr: str = e.stdout.decode('utf-8', errors='replace') if e.stdout else ""
+        errstr: str = e.stderr.decode('utf-8', errors='replace') if e.stderr else ""
+        if outstr:
+            info(f"{Fore.BLACK}{outstr}", pbar)
+        if errstr:
+            error(f"{Fore.RED}{errstr}", pbar)
+            suggestion = suggestfix(errstr)
+            if suggestion:
+                error(suggestion, pbar)
+        if not flags.cont:
+            exit(e.returncode)
+        else:
+            info(f"{Fore.CYAN}continuing...", pbar)
+        return None
+    except KeyboardInterrupt:
+        error(f"{Fore.CYAN}user interrupted", pbar)
+        return None

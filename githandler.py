@@ -1,10 +1,9 @@
 from sys import exit
-from os import getcwd
 from tqdm import tqdm
 from colorama import Fore, Style
-from helpers import getgitcommands
 from typing import List, Optional, Dict
-from loggers import success, error, info, printcmd, showcommitresult
+from helpers import getgitcommands, runcmd
+from loggers import error, info, printcmd, showcommitresult
 from loaders import startloadinganimation, stoploadinganimation, ThreadEventTuple
 from subprocess import list2cmdline, run as runsubprocess, CalledProcessError, CompletedProcess
 
@@ -47,11 +46,11 @@ def handlegitcommands(args: List[str], messages: Dict[str, str]) -> None:
             lastcmdstr = list2cmdline(cmd)
             
             # (optional) pre-command
-            runcmd(precmd, mainpbar)
+            runcmd(cmd=precmd, pbar=mainpbar)
             info(message="", pbar=mainpbar)
             
             # maincommand
-            result = runcmd(cmd, mainpbar)
+            result = runcmd(cmd=cmd, pbar=mainpbar)
             
             if animation:
                 stoploadinganimation(animation)
@@ -73,25 +72,6 @@ def handlegitcommands(args: List[str], messages: Dict[str, str]) -> None:
 
 def getloadingmessage(gitcommand: str, messages: Dict[str, str]) -> str:
     return messages.get(gitcommand, "processing...")
-
-def runcmd(cmd: List[str], pbar) -> Optional[CompletedProcess[bytes]]:
-    '''runs cmd'''
-    if not cmd:
-        return None
-    cmdstr = list2cmdline(cmd)
-    info("    running command:", pbar)
-    printcmd(f"      $ {cmdstr}", pbar)
-    cwd = getcwd()
-    try:
-        result: CompletedProcess = runsubprocess(cmd, check=True, cwd=cwd, capture_output=True)
-        if result.stdout:
-            outputstr: str = result.stdout.decode('utf-8', errors='replace').strip()
-            if outputstr:
-                info(f"    i {outputstr}", pbar)
-        success("    ✓ completed successfully", pbar)
-        return result
-    except CalledProcessError as e:
-        raise e
 
 def handleerror(e: CalledProcessError, cmdstr: str) -> None:
     error(f"\n❌ command failed with exit code {e.returncode}:")
