@@ -393,9 +393,9 @@ def runpipeline(args: Namespace) -> None:
             generatereport(report=report, totaltime=totaltime)
         else:
             generatereport(report=report, totaltime=totaltime, savetofile="report.txt")
-            spacer()
+            spacer(pbar=progressbar)
             info(message="report generated in report.txt", pbar=progressbar)
-            spacer()
+            spacer(pbar=progressbar)
 
         completebar(progressbar, totalsteps)
         
