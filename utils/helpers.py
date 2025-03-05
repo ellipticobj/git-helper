@@ -5,7 +5,7 @@ from typing import List, Tuple
 from colorama import Fore, Style # type: ignore
 from argparse import ArgumentParser, _ArgumentGroup, Namespace
 
-from utils.loggers import error
+from utils.loggers import error, info, spacer
 
 def initcommands(parser: ArgumentParser) -> None:
     '''initialize commands with commands.'''
@@ -173,15 +173,15 @@ def getgitcommands(
 
 def displayheader() -> None:
     '''displays program header'''
-    print(f"{Fore.MAGENTA}{Style.BRIGHT}meow {Style.RESET_ALL}{Fore.CYAN}v{VERSION}{Style.RESET_ALL}")
-    print(f"\ncurrent directory: {Style.BRIGHT}{getcwd()}\n")
+    info(f"{Fore.MAGENTA}{Style.BRIGHT}meow {Style.RESET_ALL}{Fore.CYAN}v{VERSION}{Style.RESET_ALL}")
+    info(f"\ncurrent directory: {Style.BRIGHT}{getcwd()}\n")
 
 def displaysteps(steps: List) -> None:
     '''displays pipeline steps'''
-    print(f"\n{Fore.CYAN}{Style.BRIGHT}meows to meow:{Style.RESET_ALL}")
+    info(f"\n{Fore.CYAN}{Style.BRIGHT}meows to meow:{Style.RESET_ALL}")
     for i, step in enumerate(steps, 1):
-        print(f"  {Fore.BLUE}{i}.{Style.RESET_ALL} {Fore.BLACK}{step.name}{Style.RESET_ALL}")
-    print()
+        info(f"  {Fore.BLUE}{i}.{Style.RESET_ALL} {Fore.BLACK}{step.name}{Style.RESET_ALL}")
+    spacer()
 
 def suggestfix(error_msg: str) -> str:
     '''suggest fixes for common errors'''

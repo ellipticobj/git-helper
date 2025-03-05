@@ -6,9 +6,9 @@ from colorama import Fore, Style # type: ignore
 from typing import List, Optional
 from subprocess import run as runsubprocess, CompletedProcess, CalledProcessError
 
-from utils.loggers import error, info, printcmd, printoutput
-from utils.loaders import startloadinganimation, stoploadinganimation
 from utils.helpers import suggestfix, list2cmdline
+from utils.loggers import error, info, printcmd, printoutput, success
+from utils.loaders import startloadinganimation, stoploadinganimation
 
 def runcmd(
     cmd: List[str],
@@ -62,13 +62,13 @@ def runcmd(
         if withprogress:
             with tqdm(
                 total=100,
-                desc=f"{Fore.CYAN}meowing...{Style.RESET_ALL}",
+                desc=f"{Fore.CYAN}mrrping...{Style.RESET_ALL}",
                 bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}',
                 position=1,
                 leave=False
-            ) as inner_pbar:
-                inner_pbar.update(10)
-                animation = startloadinganimation("mrrping...")
+            ) as innerpbar:
+                innerpbar.update(10)
+                animation = startloadinganimation("running...")
                 
                 result = runsubprocess(
                     cmd, 
@@ -77,19 +77,19 @@ def runcmd(
                     capture_output=captureoutput
                 )
                 
-                inner_pbar.n = 50
-                inner_pbar.refresh()
+                innerpbar.n = 50
+                innerpbar.refresh()
                 stoploadinganimation(animation)
                 
                 if result:
-                    printoutput(result, flags, inner_pbar, pbar)
+                    printoutput(result, flags, innerpbar, pbar)
                 
-                inner_pbar.n = 100
-                inner_pbar.colour = 'green'
-                inner_pbar.refresh()
+                innerpbar.n = 100
+                innerpbar.colour = 'green'
+                innerpbar.refresh()
                 
                 if printsuccess:
-                    print("    ✓ completed successfully")
+                    success("    ✓ completed successfully", pbar=innerpbar)
                 
                 return result
         
@@ -105,7 +105,7 @@ def runcmd(
             printoutput(result, flags, pbar, pbar)
         
         if printsuccess:
-            print("    ✓ completed successfully")
+            success("    ✓ completed successfully", pbar=pbar)
         
         return result
 

@@ -1,21 +1,21 @@
 eport:
 step: stage changes
   command: git add .
-  duration: 0.10103083 seconds
+  duration: 0.10090709 seconds
 
 step: commit changes
-  command: git commit -m refactor works
-  duration: 0.10141802 seconds
-  output: [v1 df83aaa] refactor works
- 1 file changed, 9 insertions(+), 7 deletions(-)
+  command: git commit -m updated report output to respect progress bars
+  duration: 0.10086298 seconds
+  output: [v1 0a86cbc] updated report output to respect progress bars
+ 5 files changed, 19 insertions(+), 21 deletions(-)
 
 
 step: push changes
   command: git push
-  duration: 3.60675073 seconds
+  duration: 3.71002483 seconds
 
 step: TOTAL
   command: N/A
-  duration: 3.80976248 seconds
+  duration: 3.91503716 seconds
 
-total duration: 3.80976248 seconds
+total duration: 3.91503716 seconds
