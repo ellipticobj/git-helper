@@ -2,7 +2,7 @@ from time import time
 from tqdm import tqdm # type: ignore
 from argparse import Namespace
 from collections.abc import Callable
-from typing import List, Optional, Tuple, Dict, Union
+from typing import List, Optional, Tuple, Dict, Union, Any
 
 from core.executor import runcmd
 
@@ -15,7 +15,7 @@ class PipelineStep:
     def __init__(
         self, 
         name: str, 
-        func: Callable[[Dict, Optional[tqdm]], Tuple[int, List[str]]], 
+        func: Callable[[Namespace], Any], 
         noprogressbar: bool = False
     ):
         self.name = name
@@ -26,7 +26,7 @@ class PipelineStep:
         self, 
         args: Namespace, 
         pbar: Optional[tqdm]
-    ) -> Tuple[Dict[str, Union[str, float, int]], int]:
+    ) -> tuple[dict[str, Union[object,Any]], Any]:
         '''executes thes tep'''
         start = time()
         toadd, cmd = self.func(args)
@@ -95,7 +95,7 @@ class Pipeline:
         if saveto:
             with open(saveto, 'w') as f:
                 f.writelines(output)
-            success(f"report saved to {saveto}", pbar=pbar)
+            success(message=f"report saved to {saveto}", pbar=pbar)
         else:
             for line in output:
                 info(line, pbar = pbar)

@@ -1,21 +1,24 @@
-eport:
+
+report:
 step: stage changes
   command: git add .
-  duration: 0.10124302 seconds
+  duration: 0.10283685 seconds
 
 step: commit changes
-  command: git commit -m final touchups to formatting
-  duration: 0.10126209 seconds
-  output: [v1 b7c92de] final touchups to formatting
- 2 files changed, 9 insertions(+), 9 deletions(-)
+  command: git commit -m added stuff to __init__.py files
+  duration: 0.10473132 seconds
+  output: [v1 4e3cae9] added stuff to __init__.py files
+ 8 files changed, 101 insertions(+), 11 deletions(-)
+ create mode 100755 build.sh
+ create mode 100644 setup.py
 
 
 step: push changes
   command: git push
-  duration: 3.60759830 seconds
+  duration: 5.00872827 seconds
 
 step: TOTAL
   command: N/A
-  duration: 3.81060481 seconds
+  duration: 5.21729875 seconds
 
-total duration: 3.81060481 seconds
+total duration: 5.00000000 seconds
