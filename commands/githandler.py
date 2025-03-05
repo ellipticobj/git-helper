@@ -19,14 +19,14 @@ def handlegitcommands(args: List[str], messages: Dict[str, str]) -> None:
     try:
         with tqdm(
             total=100,
-            desc=f"{Fore.CYAN}processing...{Style.RESET_ALL}",
+            desc=f"{Fore.CYAN}meowing...{Style.RESET_ALL}",
             bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}',
             position=0,
             leave=True
         ) as mainpbar:
             mainpbar.update(10)
             
-            loadingmsg = messages.get(gitcmd, "processing...")
+            loadingmsg = messages.get(gitcmd, "mrrping...")
             
             animation = startloadinganimation(loadingmsg)
             

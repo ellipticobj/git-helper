@@ -68,10 +68,10 @@ def main() -> None:
 
         # generate report
         if args.report:
-            pipeline.generatereport()
+            pipeline.generatereport(pbar=pbar)
         else:
-            pipeline.generatereport(saveto="report.txt")
-            info("report generated in report.txt")
+            pipeline.generatereport(saveto="report.txt", pbar=pbar)
+            info("report generated in report.txt", pbar)
 
     # except Exception as e:
     #     error(f"pipeline execution failed: {e}")

@@ -76,7 +76,7 @@ class Pipeline:
         self.pbar.colour = 'green'
         self.pbar.refresh()
 
-    def generatereport(self, saveto: Optional[str] = None) -> None:
+    def generatereport(self, saveto: Optional[str] = None, pbar: Optional[tqdm] = None) -> None:
         '''generates report and saves to saveto if saveto is provided'''
         output: List[str] = ["\report:\n"]
         for step in self.report:
@@ -95,7 +95,7 @@ class Pipeline:
         if saveto:
             with open(saveto, 'w') as f:
                 f.writelines(output)
-            success(f"report saved to {saveto}")
+            success(f"report saved to {saveto}", pbar=pbar)
         else:
             for line in output:
-                info(line)
+                info(line, pbar = pbar)

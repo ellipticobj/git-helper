@@ -1,23 +1,21 @@
-
-report:
+eport:
 step: stage changes
   command: git add .
-  duration: 0.10143685 seconds
+  duration: 0.10103083 seconds
 
 step: commit changes
-  command: git commit -m added files, time to debug
-  duration: 0.10369277 seconds
-  output: [v1 1e98c1d] added files, time to debug
- 10 files changed, 863 insertions(+)
- create mode 100644 report.txt
+  command: git commit -m refactor works
+  duration: 0.10141802 seconds
+  output: [v1 df83aaa] refactor works
+ 1 file changed, 9 insertions(+), 7 deletions(-)
 
 
 step: push changes
   command: git push
-  duration: 2.80657029 seconds
+  duration: 3.60675073 seconds
 
 step: TOTAL
   command: N/A
-  duration: 3.01252937 seconds
+  duration: 3.80976248 seconds
 
-total duration: 3.00000000 seconds
+total duration: 3.80976248 seconds

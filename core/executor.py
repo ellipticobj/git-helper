@@ -62,13 +62,13 @@ def runcmd(
         if withprogress:
             with tqdm(
                 total=100,
-                desc=f"{Fore.CYAN}executing...{Style.RESET_ALL}",
+                desc=f"{Fore.CYAN}meowing...{Style.RESET_ALL}",
                 bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}',
                 position=1,
                 leave=False
             ) as inner_pbar:
                 inner_pbar.update(10)
-                animation = startloadinganimation("Processing...")
+                animation = startloadinganimation("mrrping...")
                 
                 result = runsubprocess(
                     cmd, 
