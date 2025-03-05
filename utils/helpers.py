@@ -178,7 +178,7 @@ def displayheader() -> None:
 
 def displaysteps(steps: List) -> None:
     '''displays pipeline steps'''
-    info(f"\n{Fore.CYAN}{Style.BRIGHT}meows to meow:{Style.RESET_ALL}")
+    info(f"{Fore.CYAN}{Style.BRIGHT}meows to meow:{Style.RESET_ALL}")
     for i, step in enumerate(steps, 1):
         info(f"  {Fore.BLUE}{i}.{Style.RESET_ALL} {Fore.BLACK}{step.name}{Style.RESET_ALL}")
     spacer()

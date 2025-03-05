@@ -1,21 +1,21 @@
 eport:
 step: stage changes
   command: git add .
-  duration: 0.10130191 seconds
+  duration: 0.10125923 seconds
 
 step: commit changes
-  command: git commit -m fixed loading animation
-  duration: 0.10201335 seconds
-  output: [v1 db5fbc9] fixed loading animation
- 2 files changed, 10 insertions(+), 10 deletions(-)
+  command: git commit -m updated final message to respect progress bars
+  duration: 0.10138059 seconds
+  output: [v1 2f7538b] updated final message to respect progress bars
+ 3 files changed, 12 insertions(+), 12 deletions(-)
 
 
 step: push changes
   command: git push
-  duration: 3.30894804 seconds
+  duration: 3.40654540 seconds
 
 step: TOTAL
   command: N/A
-  duration: 3.51284885 seconds
+  duration: 3.60967875 seconds
 
-total duration: 3.51284885 seconds
+total duration: 3.60967875 seconds
