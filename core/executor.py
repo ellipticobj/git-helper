@@ -29,7 +29,7 @@ def runcmd(
     isinteractive: interactive mode
     '''
     # default flags
-    flags = flags or {"dry": False, "cont": False, "verbose": False}
+    flags = vars(flags) or {"dry": False, "cont": False, "verbose": False}
     
     if not cmd:
         return None
@@ -108,7 +108,7 @@ def runcmd(
         return result
 
     except CalledProcessError as e:
-        # Error handling
+        # error handling
         error(f"\n❌ command failed with exit code {e.returncode}:", pbar)
         printcmd(f"  $ {list2cmdline(cmd)}", pbar)
         

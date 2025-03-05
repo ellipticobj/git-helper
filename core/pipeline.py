@@ -1,8 +1,11 @@
-from typing import List, Optional, Tuple, Dict, Union
 from time import time
 from tqdm import tqdm # type: ignore
+from argparse import Namespace
 from collections.abc import Callable
+from typing import List, Optional, Tuple, Dict, Union
+
 from core.executor import runcmd
+
 from utils.loggers import info, success
 
 '''pipeline related functions'''
@@ -21,18 +24,18 @@ class PipelineStep:
 
     def execute(
         self, 
-        args: Dict, 
+        args: Namespace, 
         pbar: Optional[tqdm]
     ) -> Tuple[Dict[str, Union[str, float, int]], int]:
         '''executes thes tep'''
         start = time()
-        toadd, cmd = self.func(args, pbar=pbar)
+        toadd, cmd = self.func(args)
 
         result = runcmd(
             cmd=cmd,
             flags=args,
             pbar=pbar,
-            with_progress=not self.noprogressbar
+            withprogress=not self.noprogressbar
         )
 
         duration = time() - start
@@ -47,7 +50,7 @@ class PipelineStep:
 
 
 class Pipeline:
-    def __init__(self, args: Dict, steps: List[PipelineStep], pbar: tqdm):
+    def __init__(self, args: Namespace, steps: List[PipelineStep], pbar: tqdm):
         self.args = args
         self.steps = steps
         self.pbar = pbar
@@ -57,6 +60,8 @@ class Pipeline:
         '''runs all steps in the pipeline'''
         starttime = time()
         for step in self.steps:
+            reportitem: Dict
+            toadd: int
             reportitem, toadd = step.execute(self.args, self.pbar)
             
             # update bar
@@ -73,24 +78,24 @@ class Pipeline:
 
     def generatereport(self, saveto: Optional[str] = None) -> None:
         '''generates report and saves to saveto if saveto is provided'''
-        output: List[str] = ["\nReport:\n"]
+        output: List[str] = ["\report:\n"]
         for step in self.report:
-            output.append(f"Step: {step['step']}\n")
-            output.append(f"  Command: {step.get('command', 'N/A')}\n")
-            output.append(f"  Duration: {step['duration']:.8f} seconds\n")
+            output.append(f"step: {step['step']}\n")
+            output.append(f"  command: {step.get('command', 'N/A')}\n")
+            output.append(f"  duration: {step['duration']:.8f} seconds\n")
             
             if step.get("output"):
-                output.append(f"  Output: {step['output']}\n")
+                output.append(f"  output: {step['output']}\n")
             if step.get("returncode"):
-                output.append(f"  Return Code: {step['returncode']}\n")
+                output.append(f"  return code: {step['returncode']}\n")
             output.append("\n")
         
-        output.append(f"Total Duration: {self.report[-1]['duration']:.8f} seconds\n")
+        output.append(f"total duration: {self.report[-1]['duration']:.8f} seconds\n")
 
         if saveto:
             with open(saveto, 'w') as f:
                 f.writelines(output)
-            success(f"Report saved to {saveto}")
+            success(f"report saved to {saveto}")
         else:
             for line in output:
                 info(line)

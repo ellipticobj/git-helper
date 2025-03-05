@@ -1,10 +1,10 @@
 import sys
 from os import getcwd
-from typing import List, Tuple
-from argparse import ArgumentParser, _ArgumentGroup, Namespace
-from colorama import Fore, Style # type: ignore
-from core.pipeline import PipelineStep
 from config import VERSION
+from typing import List, Tuple
+from colorama import Fore, Style # type: ignore
+from argparse import ArgumentParser, _ArgumentGroup, Namespace
+
 from utils.loggers import error
 
 def initcommands(parser: ArgumentParser) -> None:
@@ -54,32 +54,33 @@ def validateargs(args: Namespace) -> None:
         error("commit message required (use --amend, --no-message, or provide message)")
         sys.exit(1)
 
-def getpipelinesteps(args: Namespace) -> List[PipelineStep]:
+def getpipelinesteps(args: Namespace) -> List:
     '''get pipeline steps'''
+    from core.pipeline import PipelineStep
     steps: List[PipelineStep] = []
 
-    def getstatus(args):
+    def getstatus(args: Namespace):
         return (1, ["git", "status"]) if args.status else (0, [])
     
-    def updatesubmodules(args):
+    def updatesubmodules(args: Namespace):
         return (1, ["git", "submodule", "update", "--init", "--recursive"]) if args.updatesubmodules else (0, [])
     
-    def getstash(args):
+    def getstash(args: Namespace):
         return (1, ["git", "stash"]) if args.stash else (0, [])
     
-    def getpull(args):
+    def getpull(args: Namespace):
         return (1, ["git", "pull"]) if args.pull or args.norebase else (0, [])
     
-    def getstage(args):
+    def getstage(args: Namespace):
         return (1, ["git", "add", *args.add] if args.add else ["git", "add", "."])
     
-    def getdiff(args):
+    def getdiff(args: Namespace):
         return (1, ["git", "diff", "--staged"]) if args.diff else (0, [])
     
-    def getcommit(args):
+    def getcommit(args: Namespace):
         return (1, _getcommitcommand(args))
     
-    def getpush(args):
+    def getpush(args: Namespace):
         return (1, _getpushcommand(args)) if not args.nopush else (0, [])
 
     # create steps
@@ -94,7 +95,7 @@ def getpipelinesteps(args: Namespace) -> List[PipelineStep]:
         PipelineStep("push changes", getpush)
     ]
 
-    return [step for step in steps if step.func(args, None)[0] > 0]
+    return [step for step in steps if step.func(args)[0] > 0]
 
 def _getcommitcommand(args: Namespace) -> List[str]:
     '''generate commit command'''
@@ -175,7 +176,7 @@ def displayheader() -> None:
     print(f"{Fore.MAGENTA}{Style.BRIGHT}meow {Style.RESET_ALL}{Fore.CYAN}v{VERSION}{Style.RESET_ALL}")
     print(f"\ncurrent directory: {Style.BRIGHT}{getcwd()}\n")
 
-def displaysteps(steps: List[PipelineStep]) -> None:
+def displaysteps(steps: List) -> None:
     '''displays pipeline steps'''
     print(f"\n{Fore.CYAN}{Style.BRIGHT}meows to meow:{Style.RESET_ALL}")
     for i, step in enumerate(steps, 1):
