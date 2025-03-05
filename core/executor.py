@@ -69,7 +69,7 @@ def runcmd(
                 leave=False
             ) as innerpbar:
                 innerpbar.update(10)
-                animation = startloadinganimation("running...")
+                # animation = startloadinganimation("running...")
                 
                 result = runsubprocess(
                     cmd, 
@@ -80,7 +80,7 @@ def runcmd(
                 
                 innerpbar.n = 50
                 innerpbar.refresh()
-                stoploadinganimation(animation)
+                # stoploadinganimation(animation)
                 
                 if result:
                     printoutput(result, flags, innerpbar, pbar)

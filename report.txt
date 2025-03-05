@@ -1,21 +1,21 @@
 eport:
 step: stage changes
   command: git add .
-  duration: 0.10132360 seconds
+  duration: 0.10142851 seconds
 
 step: commit changes
-  command: git commit -m changed print statements to info to respect progress bars
-  duration: 0.10218072 seconds
-  output: [v1 c764dbf] changed print statements to info to respect progress bars
- 3 files changed, 28 insertions(+), 28 deletions(-)
+  command: git commit -m minor bugfix
+  duration: 0.10209179 seconds
+  output: [v1 47aa4d9] minor bugfix
+ 2 files changed, 10 insertions(+), 9 deletions(-)
 
 
 step: push changes
   command: git push
-  duration: 3.60906911 seconds
+  duration: 4.00766373 seconds
 
 step: TOTAL
   command: N/A
-  duration: 3.81313729 seconds
+  duration: 4.21173620 seconds
 
-total duration: 3.81313729 seconds
+total duration: 4.21173620 seconds
