@@ -1,16 +1,18 @@
-from typing import List, Optional, Dict
-from subprocess import run as runsubprocess, CompletedProcess, CalledProcessError
 from sys import exit
 from os import getcwd
 from tqdm import tqdm # type: ignore
+from argparse import Namespace
 from colorama import Fore, Style # type: ignore
+from typing import List, Optional
+from subprocess import run as runsubprocess, CompletedProcess, CalledProcessError
+
 from utils.loggers import error, info, printcmd, printoutput
 from utils.loaders import startloadinganimation, stoploadinganimation
 from utils.helpers import suggestfix, list2cmdline
 
 def runcmd(
     cmd: List[str],
-    flags: Optional[Dict[str, bool]] = None,
+    flags: Optional[Namespace] = None,
     pbar: Optional[tqdm] = None,
     withprogress: bool = True,
     captureoutput: bool = True,
@@ -29,13 +31,13 @@ def runcmd(
     isinteractive: interactive mode
     '''
     # default flags
-    flags = vars(flags) or {"dry": False, "cont": False, "verbose": False}
-    
+    flags = flags or Namespace(dry= False, cont = False, verbose = False)
+
     if not cmd:
         return None
 
     # print command for dry run
-    if flags.get("dry"):
+    if flags.dry:
         printcmd(list2cmdline(cmd), pbar)
         return None
 
@@ -123,7 +125,7 @@ def runcmd(
             if suggestion:
                 error(suggestion, pbar)
         
-        if not flags.get("cont"):
+        if not flags.cont:
             exit(e.returncode)
         else:
             info(f"{Fore.CYAN}continuing...", pbar)
