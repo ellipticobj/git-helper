@@ -1,35 +1,38 @@
 eport:
 step: stage changes
   command: git add .
-  duration: 0.20136428 seconds
+  duration: 0.10110497 seconds
 
 step: commit changes
-  command: git commit -m v1 release?
-  duration: 0.10998845 seconds
-  output: [v1 7c7ed39] v1 release?
- 18 files changed, 130 insertions(+), 53 deletions(-)
- create mode 100644 _MEInTaant/base_library.zip
- create mode 100644 _MEInTaant/config.py
- create mode 100755 _MEInTaant/libb2.so.1
- create mode 100755 _MEInTaant/libbz2.so.1
- create mode 100755 _MEInTaant/libcrypto.so.3
- create mode 100755 _MEInTaant/libexpat.so.1
- create mode 100755 _MEInTaant/libffi.so.8
- create mode 100755 _MEInTaant/libgcc_s.so.1
- create mode 100755 _MEInTaant/libgomp.so.1
- create mode 100755 _MEInTaant/liblzma.so.5
- create mode 100755 _MEInTaant/libmpdec.so.3
- create mode 100755 _MEInTaant/libpython3.13.so.1.0
- create mode 100755 _MEInTaant/libssl.so.3
- create mode 100755 _MEInTaant/libz.so.1
+  command: git commit -m attempting to update build scripts to update everything easier
+  duration: 0.10686517 seconds
+  output: [v1 ddddae2] attempting to update build scripts to update everything easier
+ 20 files changed, 141 insertions(+), 40 deletions(-)
+ rename {_MEInTaant => _MEIPhm00Y}/base_library.zip (100%)
+ rename {_MEInTaant => _MEIPhm00Y}/config.py (100%)
+ rename {_MEInTaant => _MEIPhm00Y}/libb2.so.1 (100%)
+ rename {_MEInTaant => _MEIPhm00Y}/libbz2.so.1 (100%)
+ rename {_MEInTaant => _MEIPhm00Y}/libcrypto.so.3 (100%)
+ rename {_MEInTaant => _MEIPhm00Y}/libexpat.so.1 (100%)
+ rename {_MEInTaant => _MEIPhm00Y}/libffi.so.8 (100%)
+ rename {_MEInTaant => _MEIPhm00Y}/libgcc_s.so.1 (100%)
+ rename {_MEInTaant => _MEIPhm00Y}/libgomp.so.1 (100%)
+ rename {_MEInTaant => _MEIPhm00Y}/liblzma.so.5 (100%)
+ rename {_MEInTaant => _MEIPhm00Y}/libmpdec.so.3 (100%)
+ rename {_MEInTaant => _MEIPhm00Y}/libpython3.13.so.1.0 (100%)
+ rename {_MEInTaant => _MEIPhm00Y}/libssl.so.3 (100%)
+ rename {_MEInTaant => _MEIPhm00Y}/libz.so.1 (100%)
+ create mode 100644 python.def
+ create mode 100644 runtimehooks.py
+ create mode 100644 version.ld
 
 
 step: push changes
   command: git push
-  duration: 5.61157036 seconds
+  duration: 2.80597353 seconds
 
 step: TOTAL
   command: N/A
-  duration: 5.92381144 seconds
+  duration: 3.01446581 seconds
 
-total duration: 5.92381144 seconds
+total duration: 3.01446581 seconds

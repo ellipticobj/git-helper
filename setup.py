@@ -30,6 +30,21 @@ MACROS = [
     ('CYTHON_USE_EXC_INFO_STACK', "0")
 ]
 
+COMPILERDIRECTIVES={
+    'language_level': "3",
+    'boundscheck': False,
+    'wraparound': False,
+    'initializedcheck': False,
+    'nonecheck': False,
+    'cdivision': True,
+    'remove_asserts': True,
+    'optimize.unpack_method_calls': True,
+    'optimize.inline_defnode_calls': True,
+    'optimize.use_switch': True,
+    'c_api_binop_methods': False
+}
+
+
 Options.docstrings = False
 Options.embed_pos_in_docstring = False
 
@@ -71,26 +86,12 @@ extensions = [
     )
 ]
 
-compiler_directives={
-    'language_level': "3",
-    'boundscheck': False,
-    'wraparound': False,
-    'initializedcheck': False,
-    'nonecheck': False,
-    'cdivision': True,
-    'optimize.unpack_method_calls': True,
-    'optimize.inline_defnode_calls': True,
-    'optimize.remove_asserts': True,
-    'optimize.use_switch': True,
-    'c_api_binop_methods': False
-}
-
 setup(
     name="meow",
     version=VERSION,
     ext_modules=cythonize(
         extensions,
-        compiler_directives=compiler_directives,
+        compiler_directives=COMPILERDIRECTIVES,
         exclude=[
             "**/__init__.py",
             "**/tests/*",
