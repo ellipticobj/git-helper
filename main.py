@@ -6,7 +6,7 @@ from config import VERSION, KNOWNCOMMANDS, GITCOMMANDMESSAGES
 
 from core.pipeline import Pipeline
 
-from utils.loggers import error, info, printinfo
+from utils.loggers import info, printinfo, spacer
 from utils.helpers import validateargs, initcommands, displayheader, displaysteps, getpipelinesteps
 
 from commands.githandler import handlegitcommands
@@ -66,6 +66,7 @@ def main() -> None:
         pipeline = Pipeline(args=args, steps=steps, pbar=pbar)
         pipeline.run()
 
+        spacer(pbar)
         # generate report
         if args.report:
             pipeline.generatereport(pbar=pbar)

@@ -1,21 +1,21 @@
 eport:
 step: stage changes
   command: git add .
-  duration: 0.10142851 seconds
+  duration: 0.00341892 seconds
 
 step: commit changes
-  command: git commit -m minor bugfix
-  duration: 0.10209179 seconds
-  output: [v1 47aa4d9] minor bugfix
- 2 files changed, 10 insertions(+), 9 deletions(-)
+  command: git commit -m removed running loader
+  duration: 0.00739813 seconds
+  output: [v1 282d2cc] removed running loader
+ 2 files changed, 10 insertions(+), 10 deletions(-)
 
 
 step: push changes
   command: git push
-  duration: 4.00766373 seconds
+  duration: 3.60961080 seconds
 
 step: TOTAL
   command: N/A
-  duration: 4.21173620 seconds
+  duration: 3.62057447 seconds
 
-total duration: 4.21173620 seconds
+total duration: 3.62057447 seconds

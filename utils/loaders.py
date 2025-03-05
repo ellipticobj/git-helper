@@ -18,16 +18,16 @@ def loadingthread(
     '''animated loading icon function to run in a thread'''
     frames: FrameType = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
     frame: int = 0
-    formatted_message: str = f"{Fore.CYAN}{message}{Style.RESET_ALL}"
+    fmtmessage: str = f"{Fore.CYAN}{message}{Style.RESET_ALL}"
     
     while not stopevent.is_set():
-        stdout.write(f'\r{frames[frame]} {formatted_message}')
+        stdout.write(f'\r{frames[frame]} {fmtmessage}')
         stdout.flush()
         sleep(0.1)
         frame = (frame + 1) % len(frames) 
     
     # clear the line
-    stdout.write(f'\r {len(formatted_message)*2}\r')
+    stdout.write(f'\r {len(fmtmessage)*2}\r')
     stdout.flush()
 
 def startloadinganimation(message: str) -> ThreadEventTuple:
