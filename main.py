@@ -6,7 +6,7 @@ from config import VERSION, KNOWNCOMMANDS, GITCOMMANDMESSAGES
 
 from core.pipeline import Pipeline
 
-from utils.loggers import info, printinfo, spacer
+from utils.loggers import info, printinfo, spacer, success
 from utils.helpers import validateargs, initcommands, displayheader, displaysteps, getpipelinesteps
 
 from commands.githandler import handlegitcommands
@@ -78,7 +78,7 @@ def main() -> None:
     #     error(f"pipeline execution failed: {e}")
     #     sys.exit(1)
 
-    print("\n😺")
+    success("\n😺", pbar=pbar)
 
 if __name__ == "__main__":
     try:
