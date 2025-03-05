@@ -7,8 +7,8 @@ from typing import List, Optional
 from subprocess import run as runsubprocess, CompletedProcess, CalledProcessError
 
 from utils.helpers import suggestfix, list2cmdline
-from utils.loggers import error, info, printcmd, printoutput, success
 from utils.loaders import startloadinganimation, stoploadinganimation
+from utils.loggers import error, info, printcmd, printoutput, success, spacer
 
 def runcmd(
     cmd: List[str],
@@ -42,6 +42,7 @@ def runcmd(
         return None
 
     try:
+        spacer(pbar=pbar)
         info("    running command:", pbar)
         printcmd(f"      $ {list2cmdline(cmd)}", pbar)
 
