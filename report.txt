@@ -1,21 +1,21 @@
 eport:
 step: stage changes
   command: git add .
-  duration: 0.00341892 seconds
+  duration: 0.10147786 seconds
 
 step: commit changes
-  command: git commit -m removed running loader
-  duration: 0.00739813 seconds
-  output: [v1 282d2cc] removed running loader
- 2 files changed, 10 insertions(+), 10 deletions(-)
+  command: git commit -m update mrrping progress bar to respect running... loader
+  duration: 0.10276866 seconds
+  output: [v1 bba61f1] update mrrping progress bar to respect running... loader
+ 4 files changed, 16 insertions(+), 15 deletions(-)
 
 
 step: push changes
   command: git push
-  duration: 3.60961080 seconds
+  duration: 3.41053724 seconds
 
 step: TOTAL
   command: N/A
-  duration: 3.62057447 seconds
+  duration: 3.61537957 seconds
 
-total duration: 3.62057447 seconds
+total duration: 3.61537957 seconds
