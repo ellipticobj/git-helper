@@ -30,7 +30,7 @@ def loadingthread(
     stdout.write(f'\r {len(fmtmessage)*2}\r')
     stdout.flush()
 
-def startloadinganimation(message: str) -> ThreadEventTuple:
+def startloadinganimation(message: str = "") -> ThreadEventTuple:
     '''start loading animation in a thread'''
     stop: Event = Event()
     anithread: Thread = Thread(

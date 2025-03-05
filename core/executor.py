@@ -68,8 +68,8 @@ def runcmd(
                 position=0,
                 leave=False
             ) as innerpbar:
-                innerpbar.update(10)
-                animation = startloadinganimation("")
+                innerpbar.update(20)
+                animation = startloadinganimation()
                 
                 result = runsubprocess(
                     cmd, 
