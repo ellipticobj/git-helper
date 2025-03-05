@@ -1,24 +1,35 @@
-
-report:
+eport:
 step: stage changes
   command: git add .
-  duration: 0.10283685 seconds
+  duration: 0.20136428 seconds
 
 step: commit changes
-  command: git commit -m added stuff to __init__.py files
-  duration: 0.10473132 seconds
-  output: [v1 4e3cae9] added stuff to __init__.py files
- 8 files changed, 101 insertions(+), 11 deletions(-)
- create mode 100755 build.sh
- create mode 100644 setup.py
+  command: git commit -m v1 release?
+  duration: 0.10998845 seconds
+  output: [v1 7c7ed39] v1 release?
+ 18 files changed, 130 insertions(+), 53 deletions(-)
+ create mode 100644 _MEInTaant/base_library.zip
+ create mode 100644 _MEInTaant/config.py
+ create mode 100755 _MEInTaant/libb2.so.1
+ create mode 100755 _MEInTaant/libbz2.so.1
+ create mode 100755 _MEInTaant/libcrypto.so.3
+ create mode 100755 _MEInTaant/libexpat.so.1
+ create mode 100755 _MEInTaant/libffi.so.8
+ create mode 100755 _MEInTaant/libgcc_s.so.1
+ create mode 100755 _MEInTaant/libgomp.so.1
+ create mode 100755 _MEInTaant/liblzma.so.5
+ create mode 100755 _MEInTaant/libmpdec.so.3
+ create mode 100755 _MEInTaant/libpython3.13.so.1.0
+ create mode 100755 _MEInTaant/libssl.so.3
+ create mode 100755 _MEInTaant/libz.so.1
 
 
 step: push changes
   command: git push
-  duration: 5.00872827 seconds
+  duration: 5.61157036 seconds
 
 step: TOTAL
   command: N/A
-  duration: 5.21729875 seconds
+  duration: 5.92381144 seconds
 
-total duration: 5.00000000 seconds
+total duration: 5.92381144 seconds

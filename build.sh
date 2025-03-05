@@ -22,37 +22,55 @@ python -m PyInstaller \
     --distpath=./dist \
     --workpath=temp/build_pyinstaller \
     --clean \
-    --upx-dir=/usr/bin \
-    --upx-exclude=vcruntime140.dll \
     --strip \
-    --noupx \
-    --exclude-module tkinter \
-    --exclude-module unittest \
-    --exclude-module pytest \
     --hidden-import=colorama \
     --hidden-import=tqdm \
     --hidden-import=helpers \
     --hidden-import=loaders \
     --hidden-import=loggers \
     --add-data="config.py:." \
-    --runtime-tmpdir=. \
     --log-level=ERROR \
-    --optimize 2
+    --optimize 2 \
+    --no-archive \
+    --upx-dir=/usr/bin \
+    --upx-exclude=vcruntime140.dll \
+    --exclude-module ssl \
+    --exclude-module lzma \
+    --exclude-module pytest \
+    --exclude-module curses \
+    --exclude-module sqlite3 \
+    --exclude-module tkinter \
+    --exclude-module unittest \
+    --exclude-module multiprocessing \
+    --runtime-tmpdir=. \
+    --runtime-hook=runtimehooks.py
 
-strip --strip-all -R .comment -R .note dist/meow
+strip --strip-all -R .comment -R .note -R .gnu.version dist/meow
+sstrip -z dist/meow
+objcopy --strip-unneeded \
+        --remove-section=.note* \
+        --remove-section=.comment \
+        --redefine-syms=python.def \
+        dist/meow
+ld --script=minimal.ld -o dist/meow
+make-sfx --lzma dist/meow
+elfshrink --remove-dynamic --strip-all dist/meow
+zstd --ultra -22 --format=binary -o dist/meow.zst dist/meow
+
+mv *.so ./temp/
 
 echo -e "\nUse UPX compression? [Y/n]"
 read -r CONTINUE
 if [[ ! "$CONTINUE" =~ ^[Nn]$ ]]; then
     if command -v upx &> /dev/null; then
         echo "Compressing with UPX..."
-        upx --ultra-brute --lzma dist/meow
+        upx --ultra-brute --lzma --compress-icons=0 --all-methods --all-filters dist/meow
     else
-        echo "UPX not found, skipping compression"
+        echo "upx not found, skipping compression"
     fi
 fi
 
-echo -e "\nFinal executable size:"
+echo -e "\nfinal executable size:"
 du -sh dist/meow
 file dist/meow
 
@@ -61,6 +79,6 @@ read -r CONTINUE
 if [[ "$CONTINUE" =~ ^[Nn]$ ]]; then
     echo "Executable available at: $(pwd)/dist/meow"
 else
-    sudo install -s -D "dist/meow" "/usr/bin/meow"
+    sudo mv "dist/meow" "/usr/bin/meow"
     echo "Installed to /usr/bin/meow"
 fi
