@@ -63,13 +63,13 @@ def runcmd(
         if withprogress:
             with tqdm(
                 total=100,
-                desc=f"{Fore.CYAN}    mrrping...{Style.RESET_ALL}", # TODO: how 2 NOT hardcode this
+                desc=f"{Fore.CYAN}      mrrping...{Style.RESET_ALL}", # TODO: how 2 NOT hardcode this
                 bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}',
                 position=0,
                 leave=False
             ) as innerpbar:
                 innerpbar.update(10)
-                animation = startloadinganimation("running...")
+                animation = startloadinganimation("    ")
                 
                 result = runsubprocess(
                     cmd, 
