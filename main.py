@@ -60,7 +60,7 @@ def main() -> None:
         total=len(steps), 
         desc=f"{Fore.RED}meowing...{Style.RESET_ALL}", 
         bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}', 
-        position=0, 
+        position=1, 
         leave=True
     ) as pbar:
         pipeline = Pipeline(args=args, steps=steps, pbar=pbar)
