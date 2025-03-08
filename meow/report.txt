@@ -1,0 +1,46 @@
+eport:
+step: stage changes
+  command: git add .
+  duration: 0.10123110 seconds
+
+step: commit changes
+  command: git commit -m updated file thing so i can upload it to pip
+  duration: 0.11477518 seconds
+  output: [v1 afc118b] updated file thing so i can upload it to pip
+ 25 files changed, 1072 insertions(+)
+ create mode 100644 meow/_MEIeB2Scr/config.py
+ create mode 100755 meow/_MEIeB2Scr/libb2.so.1
+ create mode 100755 meow/_MEIeB2Scr/libbz2.so.1
+ create mode 100755 meow/_MEIeB2Scr/libcrypto.so.3
+ create mode 100755 meow/_MEIeB2Scr/libffi.so.8
+ create mode 100755 meow/_MEIeB2Scr/libgcc_s.so.1
+ create mode 100755 meow/_MEIeB2Scr/libgomp.so.1
+ create mode 100755 meow/_MEIeB2Scr/libmpdec.so.3
+ create mode 100755 meow/_MEIeB2Scr/libpython3.13.so.1.0
+ create mode 100755 meow/_MEIeB2Scr/libz.so.1
+ create mode 100644 meow/__init__.py
+ create mode 100755 meow/build.sh
+ create mode 100644 meow/commands/__init__.py
+ create mode 100644 meow/commands/githandler.py
+ create mode 100644 meow/config.py
+ create mode 100644 meow/core/__init__.py
+ create mode 100644 meow/core/executor.py
+ create mode 100644 meow/core/pipeline.py
+ create mode 100644 meow/local-setup.py
+ create mode 100644 meow/main.py
+ create mode 100644 meow/python.def
+ create mode 100644 meow/utils/__init__.py
+ create mode 100644 meow/utils/helpers.py
+ create mode 100644 meow/utils/loaders.py
+ create mode 100644 meow/utils/loggers.py
+
+
+step: push changes
+  command: git push
+  duration: 5.41150260 seconds
+
+step: TOTAL
+  command: N/A
+  duration: 5.62806010 seconds
+
+total duration: 5.62806010 seconds

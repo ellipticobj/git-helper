@@ -1,7 +1,7 @@
-from setuptools import setup, Extension
-from Cython.Build import cythonize
-from Cython.Compiler import Options
-from config import VERSION
+from setuptools import setup, Extension # type: ignore
+from Cython.Build import cythonize # type: ignore
+from Cython.Compiler import Options # type: ignore
+from config import VERSION # type: ignore
 
 CFLAGS = [
     "-Oz", 
