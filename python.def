@@ -1,9 +1,0 @@
-{
-    global:
-        Py_Main;
-        Py_Initialize;
-        Py_FinalizeEx;
-        Py_BytesMain;
-    local:
-        *;
-};

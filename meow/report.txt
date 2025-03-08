@@ -1,31 +1,31 @@
 eport:
 step: stage changes
   command: git add .
-  duration: 0.10141492 seconds
+  duration: 0.10134101 seconds
 
 step: commit changes
-  command: git commit -m is this true.
-  duration: 0.10209012 seconds
-  output: [v1 26f309e] is this true.
- 11 files changed, 19 insertions(+), 33 deletions(-)
- rename meow/{_MEIrb0XhA => _MEIefTTLH}/config.py (100%)
- rename meow/{_MEIrb0XhA => _MEIefTTLH}/libb2.so.1 (100%)
- rename meow/{_MEIrb0XhA => _MEIefTTLH}/libbz2.so.1 (100%)
- rename meow/{_MEIrb0XhA => _MEIefTTLH}/libcrypto.so.3 (100%)
- rename meow/{_MEIrb0XhA => _MEIefTTLH}/libffi.so.8 (100%)
- rename meow/{_MEIrb0XhA => _MEIefTTLH}/libgcc_s.so.1 (100%)
- rename meow/{_MEIrb0XhA => _MEIefTTLH}/libgomp.so.1 (100%)
- rename meow/{_MEIrb0XhA => _MEIefTTLH}/libmpdec.so.3 (100%)
- rename meow/{_MEIrb0XhA => _MEIefTTLH}/libpython3.13.so.1.0 (100%)
- rename meow/{_MEIrb0XhA => _MEIefTTLH}/libz.so.1 (100%)
+  command: git commit -m updated pypi related scripts
+  duration: 0.10207272 seconds
+  output: [v1 dddb8de] updated pypi related scripts
+ 12 files changed, 23 insertions(+), 22 deletions(-)
+ rename meow/{_MEIefTTLH => _MEIupg0sC}/config.py (100%)
+ rename meow/{_MEIefTTLH => _MEIupg0sC}/libb2.so.1 (100%)
+ rename meow/{_MEIefTTLH => _MEIupg0sC}/libbz2.so.1 (100%)
+ rename meow/{_MEIefTTLH => _MEIupg0sC}/libcrypto.so.3 (100%)
+ rename meow/{_MEIefTTLH => _MEIupg0sC}/libffi.so.8 (100%)
+ rename meow/{_MEIefTTLH => _MEIupg0sC}/libgcc_s.so.1 (100%)
+ rename meow/{_MEIefTTLH => _MEIupg0sC}/libgomp.so.1 (100%)
+ rename meow/{_MEIefTTLH => _MEIupg0sC}/libmpdec.so.3 (100%)
+ rename meow/{_MEIefTTLH => _MEIupg0sC}/libpython3.13.so.1.0 (100%)
+ rename meow/{_MEIefTTLH => _MEIupg0sC}/libz.so.1 (100%)
 
 
 step: push changes
   command: git push
-  duration: 3.21035624 seconds
+  duration: 2.80696154 seconds
 
 step: TOTAL
   command: N/A
-  duration: 3.41445565 seconds
+  duration: 3.01095629 seconds
 
-total duration: 3.41445565 seconds
+total duration: 3.01095629 seconds

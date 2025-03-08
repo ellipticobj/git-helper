@@ -1,12 +1,13 @@
-from setuptools import setup, Extension
-from Cython.Build import cythonize
-from Cython.Compiler import Options
-from config import VERSION
+from setuptools import setup, Extension # type: ignore
+from Cython.Build import cythonize # type: ignore
+from Cython.Compiler import Options # type: ignore
+from meow.config import VERSION
 
+# Optimization configuration
 CFLAGS = [
-    "-Oz", 
-    "-flto=4", 
-    "-fno-ident", 
+    "-Oz",
+    "-flto=4",
+    "-fno-ident",
     "-fmerge-all-constants",
     "-fno-unwind-tables",
     "-fno-asynchronous-unwind-tables",
@@ -30,56 +31,64 @@ MACROS = [
     ('CYTHON_USE_EXC_INFO_STACK', "0")
 ]
 
-COMPILERDIRECTIVES={
+COMPILERDIRECTIVES = {
     'language_level': "3",
     'boundscheck': False,
     'wraparound': False,
     'initializedcheck': False,
     'nonecheck': False,
     'cdivision': True,
-    'remove_asserts': True,
     'optimize.unpack_method_calls': True,
     'optimize.inline_defnode_calls': True,
     'optimize.use_switch': True,
     'c_api_binop_methods': False
 }
 
-
 Options.docstrings = False
 Options.embed_pos_in_docstring = False
 
 extensions = [
     Extension(
-        "helpers", 
-        ["utils/helpers.py"],
+        "meow.core.executor",
+        ["meow/core/executor.py"],
         extra_compile_args=CFLAGS,
         extra_link_args=LDFLAGS,
         define_macros=MACROS
     ),
     Extension(
-        "loaders",
-        ["utils/loaders.py"],
+        "meow.core.pipeline",
+        ["meow/core/pipeline.py"],
+        extra_compile_args=CFLAGS,
+        extra_link_args=LDFLAGS,
+        define_macros=MACROS
+    ),
+    
+    Extension(
+        "meow.utils.helpers",
+        ["meow/utils/helpers.py"],
         extra_compile_args=CFLAGS,
         extra_link_args=LDFLAGS,
         define_macros=MACROS
     ),
     Extension(
-        "loggers",
-        ["utils/loggers.py"],
+        "meow.utils.loaders",
+        ["meow/utils/loaders.py"],
         extra_compile_args=CFLAGS,
         extra_link_args=LDFLAGS,
         define_macros=MACROS
     ),
     Extension(
-        "executor",
-        ["core/executor.py"],
+        "meow.utils.loggers",
+        ["meow/utils/loggers.py"],
         extra_compile_args=CFLAGS,
         extra_link_args=LDFLAGS,
         define_macros=MACROS
     ),
+    
+    # Commands components (add your command modules here)
     Extension(
-        "pipeline",
-        ["core/pipeline.py"],
+        "meow.commands.*",
+        ["meow/commands/*.py"],
         extra_compile_args=CFLAGS,
         extra_link_args=LDFLAGS,
         define_macros=MACROS
@@ -87,7 +96,7 @@ extensions = [
 ]
 
 setup(
-    name="meow",
+    name="meower",
     version=VERSION,
     ext_modules=cythonize(
         extensions,
@@ -95,11 +104,33 @@ setup(
         exclude=[
             "**/__init__.py",
             "**/tests/*",
-            "setup.py"
+            "setup.py",
+            "config.py"
         ],
         build_dir="build/cython",
         nthreads=4
     ),
-    entry_points={"console_scripts": ["meow=main:main"]},
-    zip_safe=False
+    entry_points={
+        "console_scripts": ["meow=meow.main:main"]
+    },
+    packages=[
+        "meow",
+        "meow.core",
+        "meow.utils",
+        "meow.commands"
+    ],
+    package_dir={"": "."},
+    include_package_data=True,
+    zip_safe=False,
+    author="luna",
+    author_email="luna@hackclub.app",
+    description="meow! this is a simple cli git wrapper to simplify workflows!",
+    long_description=open("README.md").read(),
+    long_description_content_type="text/markdown",
+    url="https://github.com/ellipticobj/meower",
+    classifiers=[
+        "Programming Language :: Python :: 3",
+        "License :: OSI Approved :: MIT License",
+        "Operating System :: OS Independent",
+    ],
 )
