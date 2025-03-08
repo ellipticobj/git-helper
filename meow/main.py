@@ -76,8 +76,8 @@ def main() -> None:
     # except Exception as e:
     #     error(f"pipeline execution failed: {e}")
     #     sys.exit(1)
-
-    success("\n😺", pbar=pbar)
+    spacer(pbar=pbar)
+    success("😺", pbar=pbar)
 
 if __name__ == "__main__":
     try:
