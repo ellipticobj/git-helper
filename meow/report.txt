@@ -1,32 +1,31 @@
 eport:
 step: stage changes
   command: git add .
-  duration: 0.10124660 seconds
+  duration: 0.10141492 seconds
 
 step: commit changes
-  command: git commit -m added pypi upload/install scripts
-  duration: 0.10368991 seconds
-  output: [v1 2d8dd12] added pypi upload/install scripts
- 12 files changed, 50 insertions(+), 4 deletions(-)
- rename meow/{_MEIeB2Scr => _MEIrb0XhA}/config.py (100%)
- rename meow/{_MEIeB2Scr => _MEIrb0XhA}/libb2.so.1 (100%)
- rename meow/{_MEIeB2Scr => _MEIrb0XhA}/libbz2.so.1 (100%)
- rename meow/{_MEIeB2Scr => _MEIrb0XhA}/libcrypto.so.3 (100%)
- rename meow/{_MEIeB2Scr => _MEIrb0XhA}/libffi.so.8 (100%)
- rename meow/{_MEIeB2Scr => _MEIrb0XhA}/libgcc_s.so.1 (100%)
- rename meow/{_MEIeB2Scr => _MEIrb0XhA}/libgomp.so.1 (100%)
- rename meow/{_MEIeB2Scr => _MEIrb0XhA}/libmpdec.so.3 (100%)
- rename meow/{_MEIeB2Scr => _MEIrb0XhA}/libpython3.13.so.1.0 (100%)
- rename meow/{_MEIeB2Scr => _MEIrb0XhA}/libz.so.1 (100%)
- create mode 100644 meow/report.txt
+  command: git commit -m is this true.
+  duration: 0.10209012 seconds
+  output: [v1 26f309e] is this true.
+ 11 files changed, 19 insertions(+), 33 deletions(-)
+ rename meow/{_MEIrb0XhA => _MEIefTTLH}/config.py (100%)
+ rename meow/{_MEIrb0XhA => _MEIefTTLH}/libb2.so.1 (100%)
+ rename meow/{_MEIrb0XhA => _MEIefTTLH}/libbz2.so.1 (100%)
+ rename meow/{_MEIrb0XhA => _MEIefTTLH}/libcrypto.so.3 (100%)
+ rename meow/{_MEIrb0XhA => _MEIefTTLH}/libffi.so.8 (100%)
+ rename meow/{_MEIrb0XhA => _MEIefTTLH}/libgcc_s.so.1 (100%)
+ rename meow/{_MEIrb0XhA => _MEIefTTLH}/libgomp.so.1 (100%)
+ rename meow/{_MEIrb0XhA => _MEIefTTLH}/libmpdec.so.3 (100%)
+ rename meow/{_MEIrb0XhA => _MEIefTTLH}/libpython3.13.so.1.0 (100%)
+ rename meow/{_MEIrb0XhA => _MEIefTTLH}/libz.so.1 (100%)
 
 
 step: push changes
   command: git push
-  duration: 2.70576501 seconds
+  duration: 3.21035624 seconds
 
 step: TOTAL
   command: N/A
-  duration: 2.91113234 seconds
+  duration: 3.41445565 seconds
 
-total duration: 2.91113234 seconds
+total duration: 3.41445565 seconds

@@ -71,13 +71,15 @@ echo -e "\nfinal executable size:"
 du -sh dist/meow
 file dist/meow
 
-echo -e "\nInstall to /usr/local/bin? [Y/n]"
+echo -e "\ninstall to /usr/local/bin? [Y/n]"
 read -r CONTINUE
 if [[ "$CONTINUE" =~ ^[Nn]$ ]]; then
-    echo "Executable available at: $(pwd)/dist/meow"
+    echo "executable available at: $(pwd)/dist/meow"
 else
     sudo mv "dist/meow" "/usr/bin/meow"
-    echo "Installed to /usr/bin/meow"
+    echo "installed to /usr/bin/meow"
 fi
+
+echo "uninstall with `sudo rm -rf /usr/bin/meow`"
 
 rm -rf __pycache__/ build/ temp/
