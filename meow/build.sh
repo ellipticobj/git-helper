@@ -80,6 +80,6 @@ else
     echo "installed to /usr/bin/meow"
 fi
 
-echo "uninstall with `sudo rm -rf /usr/bin/meow`"
+echo "uninstall with 'sudo rm -rf /usr/bin/meow'"
 
 rm -rf __pycache__/ build/ temp/

@@ -71,8 +71,8 @@ def main() -> None:
         if args.report:
             pipeline.generatereport(pbar=pbar)
         else:
-            pipeline.generatereport(saveto="report.txt", pbar=pbar)
-            info("report generated in report.txt", pbar)
+            pipeline.generatereport(saveto="report.txt", pbar=pbar) # TODO: make this an absolute path
+            info("report generated in report.txt", pbar=pbar)
 
     # except Exception as e:
     #     error(f"pipeline execution failed: {e}")
