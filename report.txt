@@ -1,65 +1,32 @@
 eport:
 step: stage changes
   command: git add .
-  duration: 0.10134816 seconds
+  duration: 0.10141277 seconds
 
 step: commit changes
-  command: git commit -m updated pypi related scripts
-  duration: 0.13199329 seconds
-  output: [v1 e34b9ae] updated pypi related scripts
- 46 files changed, 117 insertions(+), 1076 deletions(-)
- rename {_MEIkEFsuv => _MEIhxtd1k}/config.py (100%)
- rename {_MEIkEFsuv => _MEIhxtd1k}/libb2.so.1 (100%)
- rename {_MEIkEFsuv => _MEIhxtd1k}/libbz2.so.1 (100%)
- rename {_MEIkEFsuv => _MEIhxtd1k}/libcrypto.so.3 (100%)
- rename {_MEIkEFsuv => _MEIhxtd1k}/libffi.so.8 (100%)
- rename {_MEIkEFsuv => _MEIhxtd1k}/libgcc_s.so.1 (100%)
- rename {_MEIkEFsuv => _MEIhxtd1k}/libgomp.so.1 (100%)
- rename {_MEIkEFsuv => _MEIhxtd1k}/libmpdec.so.3 (100%)
- rename {_MEIkEFsuv => _MEIhxtd1k}/libpython3.13.so.1.0 (100%)
- rename {_MEIkEFsuv => _MEIhxtd1k}/libz.so.1 (100%)
- delete mode 100644 _MEIkEFsuv/base_library.zip
- delete mode 100755 _MEIkEFsuv/libexpat.so.1
- delete mode 100755 _MEIkEFsuv/liblzma.so.5
- delete mode 100755 _MEIkEFsuv/libssl.so.3
- delete mode 100644 __init__.py
- delete mode 100755 build.sh
- delete mode 100644 commands/__init__.py
- delete mode 100644 commands/githandler.py
- delete mode 100644 config.py
- delete mode 100644 core/__init__.py
- delete mode 100644 core/executor.py
- delete mode 100644 core/pipeline.py
- create mode 100644 install.sh
- delete mode 100644 main.py
- delete mode 100644 meow/_MEIupg0sC/config.py
- delete mode 100755 meow/_MEIupg0sC/libb2.so.1
- delete mode 100755 meow/_MEIupg0sC/libbz2.so.1
- delete mode 100755 meow/_MEIupg0sC/libcrypto.so.3
- delete mode 100755 meow/_MEIupg0sC/libffi.so.8
- delete mode 100755 meow/_MEIupg0sC/libgcc_s.so.1
- delete mode 100755 meow/_MEIupg0sC/libgomp.so.1
- delete mode 100755 meow/_MEIupg0sC/libmpdec.so.3
- delete mode 100755 meow/_MEIupg0sC/libpython3.13.so.1.0
- delete mode 100755 meow/_MEIupg0sC/libz.so.1
- create mode 100644 pyproject.toml
- delete mode 100644 python.def
- delete mode 100644 report.txt
- delete mode 100644 runtimehooks.py
- create mode 100644 upload.sh
- delete mode 100644 utils/__init__.py
- delete mode 100644 utils/helpers.py
- delete mode 100644 utils/loaders.py
- delete mode 100644 utils/loggers.py
- delete mode 100644 version.ld
+  command: git commit -m removed duplicate logging message and updated build.sh
+  duration: 0.11480880 seconds
+  output: [v1 46a8b0b] removed duplicate logging message and updated build.sh
+ 13 files changed, 68 insertions(+), 3 deletions(-)
+ rename {_MEIhxtd1k => _MEIiKfKKx}/config.py (100%)
+ rename {_MEIhxtd1k => _MEIiKfKKx}/libb2.so.1 (100%)
+ rename {_MEIhxtd1k => _MEIiKfKKx}/libbz2.so.1 (100%)
+ rename {_MEIhxtd1k => _MEIiKfKKx}/libcrypto.so.3 (100%)
+ rename {_MEIhxtd1k => _MEIiKfKKx}/libffi.so.8 (100%)
+ rename {_MEIhxtd1k => _MEIiKfKKx}/libgcc_s.so.1 (100%)
+ rename {_MEIhxtd1k => _MEIiKfKKx}/libgomp.so.1 (100%)
+ rename {_MEIhxtd1k => _MEIiKfKKx}/libmpdec.so.3 (100%)
+ rename {_MEIhxtd1k => _MEIiKfKKx}/libpython3.13.so.1.0 (100%)
+ rename {_MEIhxtd1k => _MEIiKfKKx}/libz.so.1 (100%)
+ create mode 100644 report.txt
 
 
 step: push changes
   command: git push
-  duration: 2.80571127 seconds
+  duration: 2.80694485 seconds
 
 step: TOTAL
   command: N/A
-  duration: 3.03960729 seconds
+  duration: 3.02380419 seconds
 
-total duration: 3.03960729 seconds
+total duration: 3.02380419 seconds
