@@ -73,7 +73,8 @@ class Pipeline:
         self.report.append({"step": "TOTAL", "duration": totaltime})
         
         # complete bar
-        self.pbar.n = self.pbar.total
+        if self.pbar.n < self.pbar.total:
+            self.pbar.n = self.pbar.total
         self.pbar.colour = 'green'
         self.pbar.refresh()
 

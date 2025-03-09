@@ -1,21 +1,21 @@
 eport:
 step: stage changes
   command: git add .
-  duration: 0.10135174 seconds
+  duration: 0.10145521 seconds
 
 step: commit changes
-  command: git commit -m does this work
-  duration: 0.10142088 seconds
-  output: [v1 b4bf67b] does this work
- 2 files changed, 9 insertions(+), 20 deletions(-)
+  command: git commit -m attempting to fix a bug
+  duration: 0.10196352 seconds
+  output: [v1 a12399e] attempting to fix a bug
+ 3 files changed, 10 insertions(+), 12 deletions(-)
 
 
 step: push changes
   command: git push
-  duration: 2.70761228 seconds
+  duration: 2.80610895 seconds
 
 step: TOTAL
   command: N/A
-  duration: 2.91088486 seconds
+  duration: 3.01018333 seconds
 
-total duration: 2.91088486 seconds
+total duration: 3.01018333 seconds
