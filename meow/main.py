@@ -70,9 +70,6 @@ def main() -> None:
         else:
             pipeline.generatereport(saveto="report.txt", pbar=pbar) # TODO: make this an absolute path | make this configurable
 
-        pbar.colour = 'green'
-        pbar.update()
-
     # except Exception as e:
     #     error(f"pipeline execution failed: {e}")
     #     sys.exit(1)

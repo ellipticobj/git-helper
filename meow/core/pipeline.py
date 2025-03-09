@@ -65,7 +65,8 @@ class Pipeline:
             reportitem, toadd = step.execute(self.args, self.pbar)
             
             # update bar
-            self.pbar.update(toadd)
+            if self.pbar.n < self.pbar.total:
+                self.pbar.update(toadd)
             self.report.append(reportitem)
 
         totaltime = time() - starttime
