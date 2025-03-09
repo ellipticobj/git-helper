@@ -54,7 +54,7 @@ def main() -> None:
     # execute pipeline
     # try:
     with tqdm(
-        total=len(steps), 
+        total=len(steps) + 1, 
         desc=f"{Fore.RED}meowing...{Style.RESET_ALL}", 
         bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}', 
         position=1, 
@@ -70,7 +70,6 @@ def main() -> None:
         else:
             pipeline.generatereport(saveto="report.txt", pbar=pbar) # TODO: make this an absolute path | make this configurable
 
-        pbar.n = len(steps)
         pbar.colour = 'green'
         pbar.update()
 
