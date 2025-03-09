@@ -6,9 +6,9 @@ from colorama import Fore, Style # type: ignore
 from typing import List, Optional
 from subprocess import run as runsubprocess, CompletedProcess, CalledProcessError
 
-from utils.helpers import suggestfix, list2cmdline
-from utils.loaders import startloadinganimation, stoploadinganimation
-from utils.loggers import error, info, printcmd, printoutput, success, spacer
+from utils.helpers import suggestfix, list2cmdline # type: ignore
+from utils.loaders import startloadinganimation, stoploadinganimation # type: ignore
+from utils.loggers import error, info, printcmd, printoutput, success, spacer # type: ignore
 
 def runcmd(
     cmd: List[str],
@@ -68,7 +68,7 @@ def runcmd(
                 position=0,
                 leave=False
             ) as innerpbar:
-                innerpbar.update(20)
+                innerpbar.n = 40
                 animation = startloadinganimation()
                 
                 result = runsubprocess(
@@ -78,12 +78,12 @@ def runcmd(
                     capture_output=captureoutput
                 )
                 
-                innerpbar.n = 50
+                innerpbar.n = 70
                 innerpbar.refresh()
-                stoploadinganimation(animation)
+                stoploadinganimation(threadinfo=animation)
                 
                 if result:
-                    printoutput(result, flags, innerpbar, pbar)
+                    printoutput(result=result, flags=flags, pbar=innerpbar, mainpbar=pbar)
                 
                 innerpbar.n = 100
                 innerpbar.colour = 'green'

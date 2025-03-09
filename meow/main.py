@@ -2,14 +2,11 @@ import sys
 from tqdm import tqdm # type: ignore
 from colorama import init, Fore, Style # type: ignore
 from argparse import ArgumentParser, Namespace
-from config import VERSION, KNOWNCOMMANDS, GITCOMMANDMESSAGES
-
-from core.pipeline import Pipeline
-
-from utils.loggers import info, printinfo, spacer, success
-from utils.helpers import validateargs, initcommands, displayheader, displaysteps, getpipelinesteps
-
-from commands.githandler import handlegitcommands
+from config import VERSION, KNOWNCOMMANDS, GITCOMMANDMESSAGES # type: ignore
+from core.pipeline import Pipeline # type: ignore
+from utils.loggers import printinfo, spacer, success # type: ignore
+from utils.helpers import validateargs, initcommands, displayheader, displaysteps, getpipelinesteps # type: ignore
+from commands.githandler import handlegitcommands # type: ignore
 
 def main() -> None:
     '''entry point'''
@@ -71,7 +68,11 @@ def main() -> None:
         if args.report:
             pipeline.generatereport(pbar=pbar)
         else:
-            pipeline.generatereport(saveto="report.txt", pbar=pbar) # TODO: make this an absolute path
+            pipeline.generatereport(saveto="report.txt", pbar=pbar) # TODO: make this an absolute path | make this configurable
+
+        pbar.n = len(steps)
+        pbar.colour = 'green'
+        pbar.update()
 
     # except Exception as e:
     #     error(f"pipeline execution failed: {e}")

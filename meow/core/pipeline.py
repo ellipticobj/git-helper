@@ -2,11 +2,11 @@ from time import time
 from tqdm import tqdm # type: ignore
 from argparse import Namespace
 from collections.abc import Callable
-from typing import List, Optional, Tuple, Dict, Union, Any
+from typing import List, Optional, Dict, Union, Any
 
-from core.executor import runcmd
+from core.executor import runcmd # type: ignore
 
-from utils.loggers import info, success
+from utils.loggers import info, success # type: ignore
 
 '''pipeline related functions'''
 

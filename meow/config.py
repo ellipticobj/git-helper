@@ -1,6 +1,6 @@
 from typing import Dict, Final
 
-VERSION: Final[str] = "1.0.0-preview1"
+VERSION: Final[str] = "1.0.0-preview2"
 
 GITCOMMANDMESSAGES: Dict[str, str] = {
     'log': 'q to exit: ',
