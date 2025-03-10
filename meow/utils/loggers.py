@@ -168,7 +168,7 @@ def showresult(
             info(f"    i {Fore.CYAN}{line}", mainpbar)
 
 def spacer(pbar: Optional[tqdm] = None, height: int = 1) -> str:
-    for i in range(height):
+    for _ in range(height):
         info(message="", pbar=pbar)
 
     return "\n" * height

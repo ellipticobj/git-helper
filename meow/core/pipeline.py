@@ -100,4 +100,4 @@ class Pipeline:
             success(message=f"report saved to {saveto}", pbar=pbar)
         else:
             for line in output:
-                info(line, pbar = pbar)
+                info(line, pbar=pbar)

@@ -63,12 +63,12 @@ def main() -> None:
         pipeline = Pipeline(args=args, steps=steps, pbar=pbar)
         pipeline.run()
 
-        spacer(pbar)
+        spacer(pbar=pbar)
         # generate report
         if args.report:
             pipeline.generatereport(pbar=pbar)
         else:
-            pipeline.generatereport(saveto="report.txt", pbar=pbar) # TODO: make this an absolute path | make this configurable
+            pipeline.generatereport(saveto="report.txt", pbar=pbar) # TODO: make this an absolute path | make this configurable 
 
     # except Exception as e:
     #     error(f"pipeline execution failed: {e}")
